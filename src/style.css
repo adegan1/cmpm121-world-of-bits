@@ -1,9 +1,12 @@
 #controlPanel {
+  width: 10px;
+  height: 10px;
   padding: auto;
 }
 
 #statusPanel {
   padding: auto;
+  border: 2px solid rgb(85, 85, 85);
 }
 
 #map {
