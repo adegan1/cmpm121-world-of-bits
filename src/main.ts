@@ -75,67 +75,73 @@ interface Cell {
 const cells: Cell[] = []; // Store all active cells
 
 function spawnCell(i: number, j: number): Cell {
+  // Use luck() to get a deterministic 0–1 float
+  const randomFloat = luck(`${i}:${j}:initialValue`);
+
+  // 75% chance for 2, 25% for 4
+  const value = randomFloat < 0.75 ? 2 : 4;
+
+  // Set origin and bounds
   const origin = STARTING_LATLNG;
-  const value = Math.floor(luck(seedToString([i, j, "initialValue"])) * 100);
   const bounds = leaflet.latLngBounds(
     [origin.lat + i * TILE_SIZE, origin.lng + j * TILE_SIZE],
     [origin.lat + (i + 1) * TILE_SIZE, origin.lng + (j + 1) * TILE_SIZE],
   );
 
+  // Create a rectangle to represent a cell
   const element = leaflet.rectangle(bounds, {
-    color: "#ffc40056",
+    color: valueToColor(value),
     weight: 1,
     fillOpacity: 0.6,
   }).addTo(map);
 
-  // Interactivity!
-  element.bindPopup(() => {
-    const popupDiv = document.createElement("div");
-    popupDiv.innerHTML = `
-      <div>Cell: ${i}, ${j}. Value: <span id="value">${value}</span></div>
-      <button id="take">Take</button>
-      <button id="place">Place</button>
-    `;
+  // Create popup content
+  const popupDiv = document.createElement("div");
+  popupDiv.innerHTML = `
+    <div>Cell: ${i}, ${j}. Value: <span id="value">${value}</span></div>
+    <button id="take">Take</button>
+    <button id="place">Place</button>
+  `;
 
-    popupDiv.querySelector("#take")!.addEventListener("click", () => {
-      playerValue += takeCell(cell);
+  // Store references to elements we want to update
+  const valueSpan = popupDiv.querySelector("#value")!;
+
+  // Take
+  popupDiv.querySelector("#take")!.addEventListener("click", () => {
+    if (cell.value > 0) {
+      const temp = playerValue;
+      playerValue = cell.value;
+      cell.value = temp;
+      updateCellAppearance(cell);
       updateStatus();
-    });
 
-    popupDiv.querySelector("#place")!.addEventListener("click", () => {
-      placeCell(cell);
-      updateStatus();
-    });
-
-    return popupDiv;
+      // Update UI
+      valueSpan.textContent = cell.value.toString();
+    }
   });
+
+  // Place
+  popupDiv.querySelector("#place")!.addEventListener("click", () => {
+    if (playerValue > 0) {
+      // Replace cell token if different or merge if values match
+      cell.value = cell.value === playerValue ? cell.value * 2 : playerValue;
+      updateCellAppearance(cell);
+      playerValue = 0;
+      updateStatus();
+
+      // Update UI
+      valueSpan.textContent = cell.value.toString();
+    }
+  });
+
+  element.bindPopup(popupDiv);
 
   const cell: Cell = { i, j, value, element };
   cells.push(cell);
   return cell;
 }
 
-// Take token from cell
-function takeCell(cell: Cell): number {
-  const earned = cell.value;
-  cell.value = 0;
-  cell.element.setStyle({ fillOpacity: 0.1, color: "#888" });
-  return earned;
-}
-
-// Place token on cell
-function placeCell(cell: Cell): void {
-  if (playerValue === 0) return;
-  if (cell.value === playerValue) {
-    cell.value *= 2;
-  } else {
-    cell.value = playerValue;
-  }
-  cell.element.setStyle({ fillOpacity: 0.6, color: "#ff9900" });
-  playerValue = 0;
-}
-
-// Update each cell
+// Update each cell (kept for later)
 /*function updateAllCells(): void {
   cells.forEach((cell) => {
     cell.element.setStyle({
@@ -154,13 +160,24 @@ for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
   }
 }
 
+// Change cell color depending on value
+function valueToColor(value: number): string {
+  // Base hue from value — cycles through rainbow every 12 "doublings"
+  const hue = (Math.log2(value) * 45) % 360; // 45° per power of 2 → nice color spread
+
+  return `hsl(${hue}, 100%, 60%)`;
+}
+
+// Update cell appearance on interact
+function updateCellAppearance(cell: Cell): void {
+  cell.element.setStyle({
+    color: valueToColor(cell.value),
+    fillOpacity: cell.value > 0 ? 0.6 : 0.1,
+  });
+}
+
 // Update player status
 function updateStatus(): void {
   statusPanelDiv.innerHTML = `Current token value: ${playerValue}`;
 }
 updateStatus();
-
-// Change an array into a repeatable string key
-function seedToString(seed: (string | number)[]): string {
-  return seed.map((part) => part.toString()).join(":");
-}
