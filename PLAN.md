@@ -30,8 +30,8 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] give each cell a random value
 - [x] make cell spawns randomized (based on luck value)
 - [x] allow player to take a cell's token when interacting (one held at a time) (remove cell's token)
-- [ ] give player option to place held token on a cell (merging if they are the same size)
-- [ ] only allow players to interact with cells that are near them
+- [x] give player option to place held token on a cell (merging if they are the same size)
+- [x] only allow players to interact with cells that are near them
 - [x] make initial state of cells consistent across page loads
 - [x] make player status show current token
 - [ ] add an goal if the player reaches a certain token value

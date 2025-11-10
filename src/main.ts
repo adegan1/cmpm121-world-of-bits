@@ -36,9 +36,15 @@ const TILE_SIZE = 1e-4; // In reference to world lat and lng
 const VIEW_SIZE_X = 26;
 const VIEW_SIZE_Y = 9;
 const CELL_SPAWN_PROBABILITY = .1;
+const INTERACT_DISTANCE = 6;
+const WIN_SCORE = 32;
 
 // Player variables
 let playerValue = 0;
+let playerWon = false;
+
+const playerX = 0;
+const playerY = 0;
 
 // Create the map
 const map = leaflet.map(mapDiv, {
@@ -108,47 +114,60 @@ function spawnCell(i: number, j: number): Cell {
 
   // Take
   popupDiv.querySelector("#take")!.addEventListener("click", () => {
-    if (cell.value > 0) {
-      const temp = playerValue;
-      playerValue = cell.value;
-      cell.value = temp;
-      updateCellAppearance(cell);
-      updateStatus();
+    if (withinRange(cell.i, cell.j)) {
+      if (cell.value > 0) {
+        const temp = playerValue;
+        playerValue = cell.value;
+        cell.value = temp;
 
-      // Update UI
-      valueSpan.textContent = cell.value.toString();
+        // Check if player met win requirement
+        if (playerValue == WIN_SCORE) {
+          playerWon = true;
+        }
+
+        updateCellAppearance(cell);
+        updateStatus();
+
+        // Update UI
+        valueSpan.textContent = cell.value.toString();
+      }
     }
   });
 
   // Place
   popupDiv.querySelector("#place")!.addEventListener("click", () => {
-    if (playerValue > 0) {
-      // Replace cell token if different or merge if values match
-      cell.value = cell.value === playerValue ? cell.value * 2 : playerValue;
-      updateCellAppearance(cell);
-      playerValue = 0;
-      updateStatus();
+    if (withinRange(cell.i, cell.j)) {
+      if (playerValue > 0) {
+        // Replace cell token if different or merge if values match
+        cell.value = cell.value === playerValue ? cell.value * 2 : playerValue;
+        updateCellAppearance(cell);
+        playerValue = 0;
+        updateStatus();
 
-      // Update UI
-      valueSpan.textContent = cell.value.toString();
+        // Update UI
+        valueSpan.textContent = cell.value.toString();
+      }
     }
   });
 
-  element.bindPopup(popupDiv);
+  if (withinRange(i, j)) {
+    element.bindPopup(popupDiv);
+  } else {
+    element.unbindPopup(); // ensure no popup
+    element.bindTooltip("Too far away!", { permanent: false });
+  }
 
   const cell: Cell = { i, j, value, element };
   cells.push(cell);
   return cell;
 }
 
-// Update each cell (kept for later)
-/*function updateAllCells(): void {
+// Update each cell
+function updateAllCells(): void {
   cells.forEach((cell) => {
-    cell.element.setStyle({
-      fillOpacity: cell.value > 0 ? 0.6 : 0.1,
-    });
+    updateCellAppearance(cell);
   });
-}*/
+}
 
 // Add cells within the player's view
 for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
@@ -160,10 +179,22 @@ for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
   }
 }
 
+// Check if player is within interaction distance
+function withinRange(i: number, j: number): boolean {
+  if (
+    Math.abs(i) <= playerX + INTERACT_DISTANCE &&
+    Math.abs(j) <= playerY + INTERACT_DISTANCE
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 // Change cell color depending on value
 function valueToColor(value: number): string {
   // Base hue from value — cycles through rainbow every 12 "doublings"
-  const hue = (Math.log2(value) * 45) % 360; // 45° per power of 2 → nice color spread
+  const hue = (Math.log2(value) * 45) % 360; // 45° per power of 2
 
   return `hsl(${hue}, 100%, 60%)`;
 }
@@ -172,12 +203,20 @@ function valueToColor(value: number): string {
 function updateCellAppearance(cell: Cell): void {
   cell.element.setStyle({
     color: valueToColor(cell.value),
-    fillOpacity: cell.value > 0 ? 0.6 : 0.1,
+    fillOpacity: withinRange(cell.i, cell.j) ? 0.6 : 0.2,
   });
 }
 
 // Update player status
 function updateStatus(): void {
-  statusPanelDiv.innerHTML = `Current token value: ${playerValue}`;
+  if (!playerWon) {
+    statusPanelDiv.innerHTML =
+      `Current token value: ${playerValue} <br><br> Win if holding: ${WIN_SCORE}`;
+  } else {
+    statusPanelDiv.innerHTML = `Congrats! You won!`;
+  }
 }
+
+// Initial calls
+updateAllCells();
 updateStatus();
