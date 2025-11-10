@@ -24,13 +24,14 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] delete everything in main.ts
 - [x] put a basic leaflet map on the screen
 - [x] draw the player's location on the map
-- [ ] draw a rectangle representing one cell on the map
-- [ ] use loops to draw a whole grid of cells on the map
-- [ ] add a popup when the player clicks on a cell
-- [ ] give each cell a random value
-- [ ] allow player to take a cell's token when interacting (one held at a time) (remove cell's token)
+- [x] draw a rectangle representing one cell on the map
+- [X] use loops to draw a whole grid of cells on the map
+- [x] add a popup when the player clicks on a cell
+- [x] give each cell a random value
+- [ ] make cell spawns randomized (based on luck value)
+- [x] allow player to take a cell's token when interacting (one held at a time) (remove cell's token)
+- [ ] give player option to place held token on a cell (merging if they are the same size)
 - [ ] only allow players to interact with cells that are near them
 - [ ] make initial state of cells consistent across page loads
 - [ ] create an inventory slot that shows the currently picked up token
-- [ ] give player's option to take or place a token on a cell
 - [ ] add an ending if the player reaches a certain token value
