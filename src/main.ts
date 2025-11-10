@@ -49,9 +49,11 @@ const map = leaflet.map(mapDiv, {
 
 // Add map visuals (from openstreetmap.org)
 leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: GAMEPLAY_ZOOM_LEVEL,
-  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-}).addTo(map);
+  maxZoom: 19,
+  attribution:
+    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+})
+  .addTo(map);
 
 // Add a marker to represent the player
 const playerMarker = leaflet.marker(STARTING_LATLNG);

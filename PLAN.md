@@ -1,16 +1,16 @@
 # D3: World of Bits
 
-# Game Design Vision
+## Game Design Vision
 
 In this game, players move around the game by traversing the real world (similarly to Pokemon Go, Pikmin Bloom, or how Minecraft World was). The world that the player is in is composed of a grid containing cells that the player can view, each holding a certain number of "tokens." As the player gets near a cell, they are able to interact with them and collect the tokens, or if the player is already holding a token, they may conbine it with the cell to create a new token of doubled value. This cycle continues until the player reaches a specified goal.
 
-# Technologies
+## Technologies
 
 - TypeScript for most game code, little to no explicit HTML, and all CSS collected in common `style.css` file
 - Deno and Vite for building
 - GitHub Actions + GitHub Pages for deployment automation
 
-# Assignments
+## Assignments
 
 ## D3.a: Core mechanics (token collection and crafting)
 
