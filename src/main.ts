@@ -35,7 +35,7 @@ const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_SIZE = 1e-4; // In reference to world lat and lng
 const VIEW_SIZE_X = 26;
 const VIEW_SIZE_Y = 9;
-const CELL_SPAWN_PROBABILITY = 1;
+const CELL_SPAWN_PROBABILITY = .1;
 
 // Player variables
 let playerValue = 0;
@@ -64,58 +64,85 @@ const playerMarker = leaflet.marker(STARTING_LATLNG);
 playerMarker.bindTooltip("You");
 playerMarker.addTo(map);
 
-// Function to place a cell on the map
-function spawnCell(i: number, j: number) {
-  // Convert cell numbers into lat/lng bounds
+// main.ts
+interface Cell {
+  i: number;
+  j: number;
+  value: number;
+  element: L.Rectangle;
+}
+
+const cells: Cell[] = []; // Store all active cells
+
+function spawnCell(i: number, j: number): Cell {
   const origin = STARTING_LATLNG;
-  const bounds = leaflet.latLngBounds([
+  const value = Math.floor(luck(seedToString([i, j, "initialValue"])) * 100);
+  const bounds = leaflet.latLngBounds(
     [origin.lat + i * TILE_SIZE, origin.lng + j * TILE_SIZE],
     [origin.lat + (i + 1) * TILE_SIZE, origin.lng + (j + 1) * TILE_SIZE],
-  ]);
+  );
 
-  // Add a rectangle to the map to represent the cell
-  const cell = leaflet.rectangle(bounds);
-  cell.addTo(map);
+  const element = leaflet.rectangle(bounds, {
+    color: "#ffc40056",
+    weight: 1,
+    fillOpacity: 0.6,
+  }).addTo(map);
 
-  // Add popup on clicking a cell
-  cell.bindPopup(() => {
-    // Each cache has a random point value, mutable by the player
-    let cellValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
-
-    // The popup offers a description and button
+  // Interactivity!
+  element.bindPopup(() => {
     const popupDiv = document.createElement("div");
     popupDiv.innerHTML = `
-      <div>Cell location: "${i},${j}". Value: <span id="value">${cellValue}</span>.</div>
+      <div>Cell: ${i}, ${j}. Value: <span id="value">${value}</span></div>
       <button id="take">Take</button>
-      <button id="place">Place</button>`;
+      <button id="place">Place</button>
+    `;
 
-    // Clicking take button puts token in player inventory and removes cell
-    popupDiv
-      .querySelector<HTMLButtonElement>("#take")!
-      .addEventListener("click", () => {
-        playerValue = cellValue;
-        statusPanelDiv.innerHTML = `Current token value: ${playerValue}`;
+    popupDiv.querySelector("#take")!.addEventListener("click", () => {
+      playerValue += takeCell(cell);
+      updateStatus();
+    });
 
-        // Empty cell
-        cellValue = 0;
-      });
-
-    // Clicking place button replaces cell token if different or merges with it if they match
-    popupDiv
-      .querySelector<HTMLButtonElement>("#place")!
-      .addEventListener("click", () => {
-        if (cellValue == playerValue) {
-          cellValue *= 2;
-        } else {
-          cellValue = playerValue;
-        }
-
-        playerValue = 0;
-      });
+    popupDiv.querySelector("#place")!.addEventListener("click", () => {
+      placeCell(cell);
+      updateStatus();
+    });
 
     return popupDiv;
   });
+
+  const cell: Cell = { i, j, value, element };
+  cells.push(cell);
+  return cell;
 }
+
+// Take token from cell
+function takeCell(cell: Cell): number {
+  const earned = cell.value;
+  cell.value = 0;
+  cell.element.setStyle({ fillOpacity: 0.1, color: "#888" });
+  return earned;
+}
+
+// Place token on cell
+function placeCell(cell: Cell): void {
+  if (playerValue === 0) return;
+  if (cell.value === playerValue) {
+    cell.value *= 2;
+  } else {
+    cell.value = playerValue;
+  }
+  cell.element.setStyle({ fillOpacity: 0.6, color: "#ff9900" });
+  playerValue = 0;
+}
+
+// Update each cell
+/*function updateAllCells(): void {
+  cells.forEach((cell) => {
+    cell.element.setStyle({
+      fillOpacity: cell.value > 0 ? 0.6 : 0.1,
+    });
+  });
+}*/
 
 // Add cells within the player's view
 for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
@@ -125,4 +152,15 @@ for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
       spawnCell(i, j);
     }
   }
+}
+
+// Update player status
+function updateStatus(): void {
+  statusPanelDiv.innerHTML = `Current token value: ${playerValue}`;
+}
+updateStatus();
+
+// Change an array into a repeatable string key
+function seedToString(seed: (string | number)[]): string {
+  return seed.map((part) => part.toString()).join(":");
 }
