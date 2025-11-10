@@ -1,9 +1,9 @@
 #controlPanel {
-  padding: 1rem;
+  padding: auto;
 }
 
 #statusPanel {
-  padding: 1rem;
+  padding: auto;
 }
 
 #map {

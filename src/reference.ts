@@ -3,7 +3,7 @@ import leaflet from "leaflet";
 
 // Style sheets
 import "leaflet/dist/leaflet.css"; // supporting style for Leaflet
-import "./style.css"; // css script
+import "./style.css"; // student-controlled page style
 
 // Fix missing marker images
 import "./_leafletWorkaround.ts"; // fixes for missing Leaflet images
@@ -25,21 +25,21 @@ const statusPanelDiv = document.createElement("div");
 statusPanelDiv.id = "statusPanel";
 document.body.append(statusPanelDiv);
 
-// KU dorm location
-const STARTING_LATLNG = leaflet.latLng(
-  35.05097,
-  135.79187,
+// Our classroom location
+const CLASSROOM_LATLNG = leaflet.latLng(
+  36.997936938057016,
+  -122.05703507501151,
 );
 
 // Tunable gameplay parameters
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 8;
-const CACHE_SPAWN_PROBABILITY = .1;
+const CACHE_SPAWN_PROBABILITY = 0.1;
 
 // Create the map (element with id "map" is defined in index.html)
 const map = leaflet.map(mapDiv, {
-  center: STARTING_LATLNG,
+  center: CLASSROOM_LATLNG,
   zoom: GAMEPLAY_ZOOM_LEVEL,
   minZoom: GAMEPLAY_ZOOM_LEVEL,
   maxZoom: GAMEPLAY_ZOOM_LEVEL,
@@ -57,18 +57,18 @@ leaflet
   .addTo(map);
 
 // Add a marker to represent the player
-const playerMarker = leaflet.marker(STARTING_LATLNG);
-playerMarker.bindTooltip("You");
+const playerMarker = leaflet.marker(CLASSROOM_LATLNG);
+playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
 // Display the player's points
 let playerPoints = 0;
-statusPanelDiv.innerHTML = "No points";
+statusPanelDiv.innerHTML = "No points yet...";
 
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
   // Convert cell numbers into lat/lng bounds
-  const origin = STARTING_LATLNG;
+  const origin = CLASSROOM_LATLNG;
   const bounds = leaflet.latLngBounds([
     [origin.lat + i * TILE_DEGREES, origin.lng + j * TILE_DEGREES],
     [origin.lat + (i + 1) * TILE_DEGREES, origin.lng + (j + 1) * TILE_DEGREES],
