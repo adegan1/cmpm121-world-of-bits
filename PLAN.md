@@ -34,4 +34,4 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] only allow players to interact with cells that are near them
 - [x] make initial state of cells consistent across page loads
 - [x] make player status show current token
-- [ ] add an goal if the player reaches a certain token value
+- [x] add an goal if the player reaches a certain token value
