@@ -32,7 +32,7 @@ const STARTING_LATLNG = leaflet.latLng(
 
 // Tunable gameplay parameters
 const GAMEPLAY_ZOOM_LEVEL = 19;
-const TILE_SIZE = 1e-4;   // In reference to world lat and lng
+const TILE_SIZE = 1e-4; // In reference to world lat and lng
 const VIEW_SIZE_X = 26;
 const VIEW_SIZE_Y = 9;
 const CELL_SPAWN_PROBABILITY = 1;
@@ -52,7 +52,7 @@ const map = leaflet.map(mapDiv, {
 
 // Add map visuals (from openstreetmap.org)
 leaflet
-.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution:
       '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -97,9 +97,9 @@ function spawnCell(i: number, j: number) {
         statusPanelDiv.innerHTML = `Current token value: ${playerValue}`;
 
         // Empty cell
-        cellValue = 0
+        cellValue = 0;
       });
-    
+
     // Clicking place button replaces cell token if different or merges with it if they match
     popupDiv
       .querySelector<HTMLButtonElement>("#place")!
@@ -125,8 +125,4 @@ for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
       spawnCell(i, j);
     }
   }
-}
-
-function UpdateCell() {
-
 }
