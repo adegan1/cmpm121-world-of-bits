@@ -62,9 +62,9 @@ function cellBounds(x: number, y: number): L.LatLngBounds {
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const VIEW_SIZE_X = 26;
 const VIEW_SIZE_Y = 9;
-const CELL_SPAWN_PROBABILITY = 1;
+const CELL_SPAWN_PROBABILITY = .1;
 const INTERACT_DISTANCE = 3;
-const WIN_SCORE = 32;
+const WIN_SCORE = 64;
 
 // ---------- Player variables ----------
 let playerValue = 0;

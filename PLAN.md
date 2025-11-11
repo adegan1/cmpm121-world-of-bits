@@ -50,5 +50,5 @@ Key gameplay challenge: Can players walk around the world to simulate real-world
 - [x] update interactable cells (must be near player)
 - [ ] have cells appear memoryless in current version
 - [x] update cells tp use an earth-spanning coordinate system anchored at Null Island
-- [ ] update style to be more intuitive
-- [ ] increase winning token requirement
+- [x] update style to be more intuitive
+- [x] increase winning token requirement
