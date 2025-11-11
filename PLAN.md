@@ -44,11 +44,11 @@ Key gameplay challenge: Can players walk around the world to simulate real-world
 ### Steps
 
 - [x] abstract coordinates system
-- [ ] add four player movment buttons for up, down, left, and right
-- [ ] allow the player to move one tile at a time in any of the four cardinal directions
+- [x] add four player movment buttons for up, down, left, and right
+- [x] allow the player to move one tile at a time in any of the four cardinal directions
 - [ ] spawn in new cells and remove old ones to fit player view (using moveend function)
-- [ ] update interactable cells (must be near player)
+- [x] update interactable cells (must be near player)
 - [ ] have cells appear memoryless in current version
-- [ ] update cells tp use an earth-spanning coordinate system anchored at Null Island
+- [x] update cells tp use an earth-spanning coordinate system anchored at Null Island
 - [ ] update style to be more intuitive
 - [ ] increase winning token requirement

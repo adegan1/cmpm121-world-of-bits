@@ -24,6 +24,16 @@ const statusPanelDiv = document.createElement("div");
 statusPanelDiv.id = "statusPanel";
 document.body.append(statusPanelDiv);
 
+const dPad = document.createElement("div");
+dPad.innerHTML = `
+  <button class="up">⬆️</button>
+  <button class="left">⬅️</button>
+  <button class="right">➡️</button>
+  <button class="down">⬇️</button>
+  `;
+dPad.className = "d-pad";
+document.body.appendChild(dPad);
+
 // ---------- Coordinate System Abstraction ----------
 interface Point {
   x: number;
@@ -52,16 +62,17 @@ function cellBounds(x: number, y: number): L.LatLngBounds {
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const VIEW_SIZE_X = 26;
 const VIEW_SIZE_Y = 9;
-const CELL_SPAWN_PROBABILITY = .1;
-const INTERACT_DISTANCE = 6;
+const CELL_SPAWN_PROBABILITY = 1;
+const INTERACT_DISTANCE = 3;
 const WIN_SCORE = 32;
 
 // ---------- Player variables ----------
 let playerValue = 0;
 let playerWon = false;
 
-const playerX = 0;
-const playerY = 0;
+let playerX = 0;
+let playerY = 0;
+let playerLatLng = leaflet.latLng(playerX, playerY);
 
 // ---------- Map creation ----------
 const map = leaflet.map(mapDiv, {
@@ -161,13 +172,6 @@ function spawnCell(i: number, j: number): Cell {
     }
   });
 
-  if (withinRange(i, j)) {
-    element.bindPopup(popupDiv);
-  } else {
-    element.unbindPopup(); // ensure no popup
-    element.bindTooltip("Too far away!", { permanent: false });
-  }
-
   const cell: Cell = { i, j, value, element };
   cells.push(cell);
   return cell;
@@ -178,6 +182,22 @@ function spawnCell(i: number, j: number): Cell {
 function updateAllCells(): void {
   cells.forEach((cell) => {
     updateCellAppearance(cell);
+
+    // Update popups / tooltips
+    if (withinRange(cell.i, cell.j)) {
+      const popupDiv = document.createElement("div");
+      popupDiv.innerHTML = `
+        <div>Cell: ${cell.i}, ${cell.j}. Value: <span id="value">${cell.value}</span></div>
+        <button id="take">Take</button>
+        <button id="place">Place</button>
+      `;
+
+      cell.element.unbindTooltip(); // ensure no tooltip
+      cell.element.bindPopup(popupDiv);
+    } else {
+      cell.element.unbindPopup(); // ensure no popup
+      cell.element.bindTooltip("Too far away!", { permanent: false });
+    }
   });
 }
 
@@ -194,8 +214,10 @@ for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
 // Check if player is within interaction distance
 function withinRange(i: number, j: number): boolean {
   if (
-    Math.abs(i) <= playerX + INTERACT_DISTANCE &&
-    Math.abs(j) <= playerY + INTERACT_DISTANCE
+    i <= playerX + INTERACT_DISTANCE &&
+    i >= playerX - INTERACT_DISTANCE &&
+    j <= playerY + INTERACT_DISTANCE &&
+    j >= playerY - INTERACT_DISTANCE
   ) {
     return true;
   } else {
@@ -229,6 +251,32 @@ function updateStatus(): void {
     statusPanelDiv.innerHTML = `Congrats! You won!`;
   }
 }
+
+// Update player marker position when coords change
+function updatePlayerMarker() {
+  playerLatLng = gridToLatLng(playerX, playerY);
+  playerMarker.setLatLng(playerLatLng);
+}
+
+// ---------- Player movement ----------
+// Direction mappings: class name → [dx, dy]
+const directions = {
+  up: [1, 0],
+  right: [0, 1],
+  down: [-1, 0],
+  left: [0, -1],
+};
+
+// Set up D-pad buttons
+Object.entries(directions).forEach(([dir, [dx, dy]]) => {
+  dPad.querySelector(`.${dir}`)?.addEventListener("click", () => {
+    playerX += dx;
+    playerY += dy;
+    updatePlayerMarker();
+    updateAllCells();
+    updateStatus();
+  });
+});
 
 // ---------- Initial calls ----------
 updateAllCells();
