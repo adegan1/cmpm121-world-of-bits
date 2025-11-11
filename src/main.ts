@@ -1,7 +1,7 @@
 // @deno-types="npm:@types/leaflet"
 import leaflet from "leaflet";
 
-// Style sheets
+// ---------- Style sheets and other imports ----------
 import "leaflet/dist/leaflet.css"; // supporting style for Leaflet
 import "./style.css"; // css script
 
@@ -11,7 +11,7 @@ import "./_leafletWorkaround.ts"; // fixes for missing Leaflet images
 // Import our luck function
 import luck from "./_luck.ts";
 
-// Create basic UI elements
+// ---------- UI Elements ----------
 const controlPanelDiv = document.createElement("div");
 controlPanelDiv.id = "controlPanel";
 document.body.append(controlPanelDiv);
@@ -24,31 +24,48 @@ const statusPanelDiv = document.createElement("div");
 statusPanelDiv.id = "statusPanel";
 document.body.append(statusPanelDiv);
 
-// KU dorm location (starting pos)
-const STARTING_LATLNG = leaflet.latLng(
-  35.05097,
-  135.79187,
-);
+// ---------- Coordinate System Abstraction ----------
+interface Point {
+  x: number;
+  y: number;
+}
 
-// Tunable gameplay parameters
-const GAMEPLAY_ZOOM_LEVEL = 19;
+const cells: { i: number; j: number; value: number; element: L.Rectangle }[] =
+  []; // Store all active cells
+
+// Map grid coordinates to real-world position
+const ORIGIN_LATLNG = leaflet.latLng(0, 0); // Null Island
 const TILE_SIZE = 1e-4; // In reference to world lat and lng
+
+function gridToLatLng(x: number, y: number): L.LatLng {
+  return leaflet.latLng(
+    ORIGIN_LATLNG.lat + x * TILE_SIZE,
+    ORIGIN_LATLNG.lng + y * TILE_SIZE,
+  );
+}
+
+function cellBounds(x: number, y: number): L.LatLngBounds {
+  return leaflet.latLngBounds(gridToLatLng(x, y), gridToLatLng(x + 1, y + 1));
+}
+
+// ---------- Tunable gameplay parameters ----------
+const GAMEPLAY_ZOOM_LEVEL = 19;
 const VIEW_SIZE_X = 26;
 const VIEW_SIZE_Y = 9;
 const CELL_SPAWN_PROBABILITY = .1;
 const INTERACT_DISTANCE = 6;
 const WIN_SCORE = 32;
 
-// Player variables
+// ---------- Player variables ----------
 let playerValue = 0;
 let playerWon = false;
 
 const playerX = 0;
 const playerY = 0;
 
-// Create the map
+// ---------- Map creation ----------
 const map = leaflet.map(mapDiv, {
-  center: STARTING_LATLNG,
+  center: ORIGIN_LATLNG,
   zoom: GAMEPLAY_ZOOM_LEVEL,
   minZoom: GAMEPLAY_ZOOM_LEVEL,
   maxZoom: GAMEPLAY_ZOOM_LEVEL,
@@ -66,19 +83,17 @@ leaflet
   .addTo(map);
 
 // Add a marker to represent the player
-const playerMarker = leaflet.marker(STARTING_LATLNG);
+const playerMarker = leaflet.marker(ORIGIN_LATLNG);
 playerMarker.bindTooltip("You");
 playerMarker.addTo(map);
 
-// main.ts
+// ---------- Cell Functionality ----------
 interface Cell {
   i: number;
   j: number;
   value: number;
   element: L.Rectangle;
 }
-
-const cells: Cell[] = []; // Store all active cells
 
 function spawnCell(i: number, j: number): Cell {
   // Use luck() to get a deterministic 0–1 float
@@ -87,12 +102,8 @@ function spawnCell(i: number, j: number): Cell {
   // 75% chance for 2, 25% for 4
   const value = randomFloat < 0.75 ? 2 : 4;
 
-  // Set origin and bounds
-  const origin = STARTING_LATLNG;
-  const bounds = leaflet.latLngBounds(
-    [origin.lat + i * TILE_SIZE, origin.lng + j * TILE_SIZE],
-    [origin.lat + (i + 1) * TILE_SIZE, origin.lng + (j + 1) * TILE_SIZE],
-  );
+  // Set bounds
+  const bounds = cellBounds(i, j); // instead of manual array math
 
   // Create a rectangle to represent a cell
   const element = leaflet.rectangle(bounds, {
@@ -162,6 +173,7 @@ function spawnCell(i: number, j: number): Cell {
   return cell;
 }
 
+// ---------- Cell Maintenance ----------
 // Update each cell
 function updateAllCells(): void {
   cells.forEach((cell) => {
@@ -199,6 +211,7 @@ function valueToColor(value: number): string {
   return `hsl(${hue}, 100%, 60%)`;
 }
 
+// ---------- Update status elements ----------
 // Update cell appearance on interact
 function updateCellAppearance(cell: Cell): void {
   cell.element.setStyle({
@@ -217,6 +230,6 @@ function updateStatus(): void {
   }
 }
 
-// Initial calls
+// ---------- Initial calls ----------
 updateAllCells();
 updateStatus();
