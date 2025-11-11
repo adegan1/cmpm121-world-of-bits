@@ -36,8 +36,8 @@ document.body.appendChild(dPad);
 
 // ---------- Coordinate System Abstraction ----------
 interface Point {
-  x: number;
-  y: number;
+  i: number;
+  j: number;
 }
 
 const cells: { i: number; j: number; value: number; element: L.Rectangle }[] =
@@ -47,11 +47,20 @@ const cells: { i: number; j: number; value: number; element: L.Rectangle }[] =
 const ORIGIN_LATLNG = leaflet.latLng(0, 0); // Null Island
 const TILE_SIZE = 1e-4; // In reference to world lat and lng
 
+// Get lat and lng using grid space
 function gridToLatLng(x: number, y: number): L.LatLng {
   return leaflet.latLng(
     ORIGIN_LATLNG.lat + x * TILE_SIZE,
     ORIGIN_LATLNG.lng + y * TILE_SIZE,
   );
+}
+
+// Get grid space using lat and lng
+function latLngToGrid(latlng: L.LatLng): Point {
+  return {
+    i: Math.floor((latlng.lat - ORIGIN_LATLNG.lat) / TILE_SIZE),
+    j: Math.floor((latlng.lng - ORIGIN_LATLNG.lng) / TILE_SIZE),
+  };
 }
 
 function cellBounds(x: number, y: number): L.LatLngBounds {
@@ -60,8 +69,6 @@ function cellBounds(x: number, y: number): L.LatLngBounds {
 
 // ---------- Tunable gameplay parameters ----------
 const GAMEPLAY_ZOOM_LEVEL = 19;
-const VIEW_SIZE_X = 26;
-const VIEW_SIZE_Y = 9;
 const CELL_SPAWN_PROBABILITY = .1;
 const INTERACT_DISTANCE = 3;
 const WIN_SCORE = 64;
@@ -98,6 +105,9 @@ const playerMarker = leaflet.marker(ORIGIN_LATLNG);
 playerMarker.bindTooltip("You");
 playerMarker.addTo(map);
 
+// Update cells when finished moving map
+map.on("moveend", updateVisibleCells);
+
 // ---------- Cell Functionality ----------
 interface Cell {
   i: number;
@@ -131,6 +141,12 @@ function spawnCell(i: number, j: number): Cell {
     <button id="place">Place</button>
   `;
 
+  const cell: Cell = { i, j, value, element };
+  cells.push(cell);
+  return cell;
+}
+
+function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
   // Store references to elements we want to update
   const valueSpan = popupDiv.querySelector("#value")!;
 
@@ -171,10 +187,6 @@ function spawnCell(i: number, j: number): Cell {
       }
     }
   });
-
-  const cell: Cell = { i, j, value, element };
-  cells.push(cell);
-  return cell;
 }
 
 // ---------- Cell Maintenance ----------
@@ -192,6 +204,8 @@ function updateAllCells(): void {
         <button id="place">Place</button>
       `;
 
+      managePopup(cell, popupDiv);
+
       cell.element.unbindTooltip(); // ensure no tooltip
       cell.element.bindPopup(popupDiv);
     } else {
@@ -201,14 +215,44 @@ function updateAllCells(): void {
   });
 }
 
-// Add cells within the player's view
-for (let i = -VIEW_SIZE_Y; i < VIEW_SIZE_Y; i++) {
-  for (let j = -VIEW_SIZE_X; j < VIEW_SIZE_X; j++) {
-    // Spawn a cell if luck meets requirement
-    if (luck([i, j].toString()) < CELL_SPAWN_PROBABILITY) {
-      spawnCell(i, j);
+// Update the cells within the player's view
+function updateVisibleCells() {
+  // Get current map bounds (LatLngBounds)
+  const bounds = map.getBounds();
+
+  // Convert bounds corners to grid coordinates
+  const min = latLngToGrid(bounds.getSouthWest());
+  const max = latLngToGrid(bounds.getNorthEast());
+
+  // Define inclusive range (with buffer for smooth edges)
+  const margin = 1;
+  const minI = Math.floor(min.i) - margin;
+  const maxI = Math.ceil(max.i) + margin;
+  const minJ = Math.floor(min.j) - margin;
+  const maxJ = Math.ceil(max.j) + margin;
+
+  // Remove offscreen cells
+  for (let idx = cells.length - 1; idx >= 0; idx--) {
+    const cell = cells[idx];
+    if (cell.i < minI || cell.i > maxI || cell.j < minJ || cell.j > maxJ) {
+      cell.element.removeFrom(map);
+      cells.splice(idx, 1);
     }
   }
+
+  // Spawn new cells in visible area (if not already present)
+  for (let i = minI; i <= maxI; i++) {
+    for (let j = minJ; j <= maxJ; j++) {
+      if (!cells.some((cell) => cell.i === i && cell.j === j)) {
+        // Use luck() to determine whether to spawn
+        if (luck([i, j].toString()) < CELL_SPAWN_PROBABILITY) {
+          spawnCell(i, j);
+        }
+      }
+    }
+  }
+
+  updateAllCells();
 }
 
 // Check if player is within interaction distance
@@ -280,4 +324,5 @@ Object.entries(directions).forEach(([dir, [dx, dy]]) => {
 
 // ---------- Initial calls ----------
 updateAllCells();
+updateVisibleCells();
 updateStatus();
