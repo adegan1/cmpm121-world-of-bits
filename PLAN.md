@@ -52,3 +52,21 @@ Key gameplay challenge: Can players walk around the world to simulate real-world
 - [x] update cells tp use an earth-spanning coordinate system anchored at Null Island
 - [x] update style to be more intuitive
 - [x] increase winning token requirement
+
+## D3.c: Object persistence (game memory)
+
+Key technical challenge: Can you make use of programming patterns to effectively save and load cell memory?
+Key gameplay challenge: Can cells have a persistent memory that remembers what happens to them whether they are on the screen or not?
+
+### Steps
+
+- [ ] define a cell creator to begin utilizing the flyweight pattern
+- [ ] replace my current cells array with a new "modifiewCells" map
+- [ ] update the updateVisibleCells() function to use the new flyweight logic
+- [ ] update the player actions to create cells
+- [ ] cache flyweight appearances to make it even more efficient
+- [ ] define the memento interface
+- [ ] add memento methods to the cell logic
+- [ ] save memento when a cell leaves view
+- [ ] restore memento on cell re-entry
+- [ ] refactor memento pattern to separate data and visuals
