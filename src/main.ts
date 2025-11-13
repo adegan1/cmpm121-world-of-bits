@@ -40,26 +40,26 @@ interface Point {
   j: number;
 }
 
-const cells: { i: number; j: number; value: number; element: L.Rectangle }[] =
-  []; // Store all active cells
-
-// Map grid coordinates to real-world position
-const ORIGIN_LATLNG = leaflet.latLng(0, 0); // Null Island
-const TILE_SIZE = 1e-4; // In reference to world lat and lng
+const renderedCells = new Map<string, Cell>(); // Visible, rendered cells
+const modifiedCells = new Map<string, Cell>(); // Permanently stored, modified cells
 
 // Get lat and lng using grid space
 function gridToLatLng(x: number, y: number): L.LatLng {
   return leaflet.latLng(
-    ORIGIN_LATLNG.lat + x * TILE_SIZE,
-    ORIGIN_LATLNG.lng + y * TILE_SIZE,
+    SETTINGS.ORIGIN_LATLNG.lat + x * SETTINGS.TILE_SIZE,
+    SETTINGS.ORIGIN_LATLNG.lng + y * SETTINGS.TILE_SIZE,
   );
 }
 
 // Get grid space using lat and lng
 function latLngToGrid(latlng: L.LatLng): Point {
   return {
-    i: Math.floor((latlng.lat - ORIGIN_LATLNG.lat) / TILE_SIZE),
-    j: Math.floor((latlng.lng - ORIGIN_LATLNG.lng) / TILE_SIZE),
+    i: Math.floor(
+      (latlng.lat - SETTINGS.ORIGIN_LATLNG.lat) / SETTINGS.TILE_SIZE,
+    ),
+    j: Math.floor(
+      (latlng.lng - SETTINGS.ORIGIN_LATLNG.lng) / SETTINGS.TILE_SIZE,
+    ),
   };
 }
 
@@ -67,11 +67,15 @@ function cellBounds(x: number, y: number): L.LatLngBounds {
   return leaflet.latLngBounds(gridToLatLng(x, y), gridToLatLng(x + 1, y + 1));
 }
 
-// ---------- Tunable gameplay parameters ----------
-const GAMEPLAY_ZOOM_LEVEL = 19;
-const CELL_SPAWN_PROBABILITY = .1;
-const INTERACT_DISTANCE = 3;
-const WIN_SCORE = 64;
+// ---------- Tunable gameplay settings ----------
+const SETTINGS = {
+  ORIGIN_LATLNG: leaflet.latLng(0, 0), // Null Island
+  TILE_SIZE: 1e-4,
+  INTERACT_DISTANCE: 3,
+  CELL_SPAWN_PROBABILITY: 0.1,
+  GAMEPLAY_ZOOM_LEVEL: 19,
+  WIN_SCORE: 64,
+};
 
 // ---------- Player variables ----------
 let playerValue = 0;
@@ -83,10 +87,10 @@ let playerLatLng = leaflet.latLng(playerX, playerY);
 
 // ---------- Map creation ----------
 const map = leaflet.map(mapDiv, {
-  center: ORIGIN_LATLNG,
-  zoom: GAMEPLAY_ZOOM_LEVEL,
-  minZoom: GAMEPLAY_ZOOM_LEVEL,
-  maxZoom: GAMEPLAY_ZOOM_LEVEL,
+  center: SETTINGS.ORIGIN_LATLNG,
+  zoom: SETTINGS.GAMEPLAY_ZOOM_LEVEL,
+  minZoom: SETTINGS.GAMEPLAY_ZOOM_LEVEL,
+  maxZoom: SETTINGS.GAMEPLAY_ZOOM_LEVEL,
   zoomControl: false,
   scrollWheelZoom: false,
 });
@@ -101,7 +105,7 @@ leaflet
   .addTo(map);
 
 // Add a marker to represent the player
-const playerMarker = leaflet.marker(ORIGIN_LATLNG);
+const playerMarker = leaflet.marker(SETTINGS.ORIGIN_LATLNG);
 playerMarker.bindTooltip("You");
 playerMarker.addTo(map);
 
@@ -113,62 +117,65 @@ interface Cell {
   i: number;
   j: number;
   value: number;
-  element: L.Rectangle;
+  element: leaflet.Rectangle;
 }
 
-function spawnCell(i: number, j: number): Cell {
-  // Use luck() to get a deterministic 0–1 float
-  const randomFloat = luck(`${i}:${j}:initialValue`);
+class CellFactory {
+  static create(i: number, j: number): Cell {
+    // Check if already modified
+    const key = `${i},${j}`;
+    if (modifiedCells.has(key)) {
+      return modifiedCells.get(key)!;
+    }
 
-  // 75% chance for 2, 25% for 4
-  const value = randomFloat < 0.75 ? 2 : 4;
+    // Otherwise create a "flyweight" temporary cell using luck()
+    const randomFloat = luck(`${i}:${j}:initialValue`);
+    const value = randomFloat < 0.75 ? 2 : 4;
 
-  // Set bounds
-  const bounds = cellBounds(i, j); // instead of manual array math
+    return { i, j, value, element: null as unknown as leaflet.Rectangle };
+  }
 
-  // Create a rectangle to represent a cell
-  const element = leaflet.rectangle(bounds, {
-    color: valueToColor(value),
-    weight: 1,
-    fillOpacity: 0.6,
-  }).addTo(map);
+  static modify(cell: Cell) {
+    const key = `${cell.i},${cell.j}`;
+    modifiedCells.set(key, cell);
+  }
 
-  // Create popup content
-  const popupDiv = document.createElement("div");
-  popupDiv.innerHTML = `
-    <div>Cell: ${i}, ${j}. Value: <span id="value">${value}</span></div>
+  static isModified(i: number, j: number): boolean {
+    return modifiedCells.has(`${i},${j}`);
+  }
+}
+
+// ---------- Popup Management ----------
+function createPopupContent(cell: Cell): HTMLDivElement {
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <div>Cell: ${cell.i}, ${cell.j}. Value: <span id="value">${cell.value}</span></div>
     <button id="take">Take</button>
     <button id="place">Place</button>
   `;
-
-  const cell: Cell = { i, j, value, element };
-  cells.push(cell);
-  return cell;
+  managePopup(cell, div);
+  return div;
 }
 
 function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
-  // Store references to elements we want to update
-  const valueSpan = popupDiv.querySelector("#value")!;
-
   // Take
   popupDiv.querySelector("#take")!.addEventListener("click", () => {
     if (withinRange(cell.i, cell.j)) {
-      if (cell.value > 0) {
-        const temp = playerValue;
-        playerValue = cell.value;
-        cell.value = temp;
+      // Swap token values
+      const temp = playerValue;
+      playerValue = cell.value;
+      cell.value = temp;
 
-        // Check if player met win requirement
-        if (playerValue == WIN_SCORE) {
-          playerWon = true;
-        }
+      // Persist this cell as modified
+      CellFactory.modify(cell);
 
-        updateCellAppearance(cell);
-        updateStatus();
-
-        // Update UI
-        valueSpan.textContent = cell.value.toString();
+      // Check if player has won
+      if (playerValue == SETTINGS.WIN_SCORE) {
+        playerWon = true;
       }
+
+      updateCellAppearance(cell);
+      updateStatus();
     }
   });
 
@@ -176,92 +183,116 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
   popupDiv.querySelector("#place")!.addEventListener("click", () => {
     if (withinRange(cell.i, cell.j)) {
       if (playerValue > 0) {
-        // Replace cell token if different or merge if values match
+        // Replace or merge the cell value
         cell.value = cell.value === playerValue ? cell.value * 2 : playerValue;
+
+        // Persist this modified cell in memory
+        CellFactory.modify(cell);
+
+        // Update visuals and player status
         updateCellAppearance(cell);
         playerValue = 0;
         updateStatus();
 
-        // Update UI
+        // Update popup UI
+        const valueSpan = popupDiv.querySelector("#value")!;
         valueSpan.textContent = cell.value.toString();
       }
     }
   });
 }
 
-// ---------- Cell Maintenance ----------
-// Update each cell
-function updateAllCells(): void {
-  cells.forEach((cell) => {
-    updateCellAppearance(cell);
-
-    // Update popups / tooltips
-    if (withinRange(cell.i, cell.j)) {
-      const popupDiv = document.createElement("div");
-      popupDiv.innerHTML = `
-        <div>Cell: ${cell.i}, ${cell.j}. Value: <span id="value">${cell.value}</span></div>
-        <button id="take">Take</button>
-        <button id="place">Place</button>
-      `;
-
-      managePopup(cell, popupDiv);
-
-      cell.element.unbindTooltip(); // ensure no tooltip
-      cell.element.bindPopup(popupDiv);
-    } else {
-      cell.element.unbindPopup(); // ensure no popup
-      cell.element.bindTooltip("Too far away!", { permanent: false });
-    }
-  });
-}
-
+// ---------- Cell Management ----------
 // Update the cells within the player's view
 function updateVisibleCells() {
-  // Get current map bounds (LatLngBounds)
   const bounds = map.getBounds();
-
-  // Convert bounds corners to grid coordinates
   const min = latLngToGrid(bounds.getSouthWest());
   const max = latLngToGrid(bounds.getNorthEast());
 
-  // Define inclusive range (with buffer for smooth edges)
   const margin = 1;
-  const minI = Math.floor(min.i) - margin;
-  const maxI = Math.ceil(max.i) + margin;
-  const minJ = Math.floor(min.j) - margin;
-  const maxJ = Math.ceil(max.j) + margin;
+  const visibleNow = new Set<string>(); // track which cells *should* be visible
 
-  // Remove offscreen cells
-  for (let idx = cells.length - 1; idx >= 0; idx--) {
-    const cell = cells[idx];
-    if (cell.i < minI || cell.i > maxI || cell.j < minJ || cell.j > maxJ) {
-      cell.element.removeFrom(map);
-      cells.splice(idx, 1);
-    }
-  }
+  for (
+    let i = Math.floor(min.i) - margin;
+    i <= Math.ceil(max.i) + margin;
+    i++
+  ) {
+    for (
+      let j = Math.floor(min.j) - margin;
+      j <= Math.ceil(max.j) + margin;
+      j++
+    ) {
+      const key = `${i},${j}`;
+      visibleNow.add(key);
 
-  // Spawn new cells in visible area (if not already present)
-  for (let i = minI; i <= maxI; i++) {
-    for (let j = minJ; j <= maxJ; j++) {
-      if (!cells.some((cell) => cell.i === i && cell.j === j)) {
-        // Use luck() to determine whether to spawn
-        if (luck([i, j].toString()) < CELL_SPAWN_PROBABILITY) {
-          spawnCell(i, j);
-        }
+      // Skip cells that shouldn't spawn (probability)
+      if (luck([i, j].toString()) >= SETTINGS.CELL_SPAWN_PROBABILITY) continue;
+
+      // If it's already rendered, skip creation
+      if (renderedCells.has(key)) continue;
+
+      // Otherwise, get the cell (either modified or new flyweight)
+      const cell = CellFactory.create(i, j);
+
+      // Create rectangle
+      const bounds = cellBounds(i, j);
+      const element = leaflet.rectangle(bounds, {
+        color: valueToColor(cell.value),
+        weight: 1,
+        fillOpacity: withinRange(i, j) ? 0.6 : 0.2,
+      }).addTo(map);
+
+      cell.element = element;
+
+      // Only bind popup if within range
+      if (withinRange(i, j)) {
+        const popup = createPopupContent(cell);
+        element.bindPopup(popup);
+      } else {
+        element.bindTooltip("Too far away!", { permanent: false });
       }
+
+      // Track that this cell is now rendered
+      renderedCells.set(key, cell);
     }
   }
 
-  updateAllCells();
+  // Remove cells that went offscreen
+  for (const [key, cell] of renderedCells.entries()) {
+    if (!visibleNow.has(key)) {
+      cell.element.removeFrom(map);
+      renderedCells.delete(key);
+    }
+  }
+}
+
+function refreshCellInteractivity() {
+  for (const [, cell] of renderedCells) {
+    const inRange = withinRange(cell.i, cell.j);
+
+    cell.element.setStyle({
+      fillOpacity: inRange ? 0.6 : 0.2,
+    });
+
+    cell.element.unbindPopup();
+    cell.element.unbindTooltip();
+
+    if (inRange) {
+      const popup = createPopupContent(cell);
+      cell.element.bindPopup(popup);
+    } else {
+      cell.element.bindTooltip("Too far away!", { permanent: false });
+    }
+  }
 }
 
 // Check if player is within interaction distance
 function withinRange(i: number, j: number): boolean {
   if (
-    i <= playerX + INTERACT_DISTANCE &&
-    i >= playerX - INTERACT_DISTANCE &&
-    j <= playerY + INTERACT_DISTANCE &&
-    j >= playerY - INTERACT_DISTANCE
+    i <= playerX + SETTINGS.INTERACT_DISTANCE &&
+    i >= playerX - SETTINGS.INTERACT_DISTANCE &&
+    j <= playerY + SETTINGS.INTERACT_DISTANCE &&
+    j >= playerY - SETTINGS.INTERACT_DISTANCE
   ) {
     return true;
   } else {
@@ -271,10 +302,10 @@ function withinRange(i: number, j: number): boolean {
 
 // Change cell color depending on value
 function valueToColor(value: number): string {
-  // Base hue from value — cycles through rainbow every 12 "doublings"
-  const hue = (Math.log2(value) * 45) % 360; // 45° per power of 2
-
-  return `hsl(${hue}, 100%, 60%)`;
+  // Base hue from value
+  const hue = (Math.log2(value) * 45) % 360;
+  const lightness = 70 - Math.min(Math.log2(value), 6) * 5;
+  return `hsl(${hue}, 100%, ${lightness}%)`;
 }
 
 // ---------- Update status elements ----------
@@ -290,7 +321,7 @@ function updateCellAppearance(cell: Cell): void {
 function updateStatus(): void {
   if (!playerWon) {
     statusPanelDiv.innerHTML =
-      `Current token value: ${playerValue} <br><br> Win if holding: ${WIN_SCORE}`;
+      `Current token value: ${playerValue} <br><br> Win if holding: ${SETTINGS.WIN_SCORE}`;
   } else {
     statusPanelDiv.innerHTML = `Congrats! You won!`;
   }
@@ -317,12 +348,12 @@ Object.entries(directions).forEach(([dir, [dx, dy]]) => {
     playerX += dx;
     playerY += dy;
     updatePlayerMarker();
-    updateAllCells();
+    updateVisibleCells();
+    refreshCellInteractivity();
     updateStatus();
   });
 });
 
 // ---------- Initial calls ----------
-updateAllCells();
 updateVisibleCells();
 updateStatus();
