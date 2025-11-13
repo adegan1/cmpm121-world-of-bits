@@ -220,21 +220,22 @@ function withinRange(i: number, j: number): boolean {
 
 function updateVisibleCells(): void {
   const bounds = map.getBounds();
-  const min = latLngToGrid(bounds.getSouthWest());
-  const max = latLngToGrid(bounds.getNorthEast());
+  const min = latLngToGrid(
+    leaflet.latLng(bounds.getSouthWest().lat, bounds.getSouthWest().lng),
+  );
+  const max = latLngToGrid(
+    leaflet.latLng(bounds.getNorthEast().lat, bounds.getNorthEast().lng),
+  );
 
-  const margin = 1;
-  const minI = Math.floor(min.i) - margin;
-  const maxI = Math.ceil(max.i) + margin;
-  const minJ = Math.floor(min.j) - margin;
-  const maxJ = Math.ceil(max.j) + margin;
+  // Round out a bit to ensure coverage
+  const minI = Math.floor(min.i) - 1;
+  const maxI = Math.ceil(max.i) + 1;
+  const minJ = Math.floor(min.j) - 1;
+  const maxJ = Math.ceil(max.j) + 1;
 
-  // Remove offscreen visual layers (keep data!)
+  // Remove offscreen cells
   for (const cell of modifiedCells.values()) {
-    if (
-      cell.i < minI || cell.i > maxI ||
-      cell.j < minJ || cell.j > maxJ
-    ) {
+    if (cell.i < minI || cell.i > maxI || cell.j < minJ || cell.j > maxJ) {
       cell.element.removeFrom(map);
     }
   }
@@ -242,30 +243,13 @@ function updateVisibleCells(): void {
   // Render visible cells
   for (let i = minI; i <= maxI; i++) {
     for (let j = minJ; j <= maxJ; j++) {
-      if (withinRange(i, j)) {
-        const key = `${i},${j}`;
-        const cell = modifiedCells.get(key);
+      const key = `${i},${j}`;
+      let cell = modifiedCells.get(key);
 
-        if (cell) {
-          // Restore Memento
-          if (!map.hasLayer(cell.element)) {
-            cell.element.addTo(map);
-            bindCellPopup(cell);
-          }
-        } else {
-          // Flyweight preview
-          const value = getDefaultCellValue(i, j);
-          const bounds = cellBounds(i, j);
-          const tempElement = leaflet.rectangle(bounds, {
-            color: valueToColor(value),
-            weight: 1,
-            fillOpacity: 0.2,
-          }).addTo(map);
-
-          tempElement.bindPopup(
-            `Cell: ${i}, ${j}<br>Value: ${value}<br>(unclaimed)`,
-          );
-        }
+      if (!cell) {
+        cell = materializeCell(i, j);
+      } else if (!map.hasLayer(cell.element)) {
+        cell.element.addTo(map);
       }
     }
   }
