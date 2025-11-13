@@ -60,11 +60,11 @@ Key gameplay challenge: Can cells have a persistent memory that remembers what h
 
 ### Steps
 
-- [ ] define a cell creator to begin utilizing the flyweight pattern
-- [ ] replace my current cells array with a new "modifiewCells" map
-- [ ] update the updateVisibleCells() function to use the new flyweight logic
-- [ ] update the player actions to create cells
-- [ ] cache flyweight appearances to make it even more efficient
+- [x] define a cell creator to begin utilizing the flyweight pattern
+- [x] replace my current cells array with a new "modifiedCells" map
+- [x] update the updateVisibleCells() function to use the new flyweight logic
+- [x] update the player actions to create cells
+- [x] cache flyweight appearances to make it even more efficient
 - [ ] define the memento interface
 - [ ] add memento methods to the cell logic
 - [ ] save memento when a cell leaves view
