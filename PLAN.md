@@ -66,4 +66,4 @@ Key gameplay challenge: Can cells have a persistent memory that remembers what h
 - [x] update the player actions to create cells
 - [x] cache flyweight appearances to make it even more efficient
 - [x] make sure cells save information and load them when necessary
-- [ ] refactor memento pattern to separate data and visuals
+- [x] refactor memento pattern to separate data and visuals

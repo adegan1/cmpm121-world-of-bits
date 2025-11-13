@@ -44,10 +44,10 @@ const renderedCells = new Map<string, Cell>(); // Visible, rendered cells
 const modifiedCells = new Map<string, Cell>(); // Permanently stored, modified cells
 
 // Get lat and lng using grid space
-function gridToLatLng(x: number, y: number): L.LatLng {
+function gridToLatLng(i: number, j: number): L.LatLng {
   return leaflet.latLng(
-    SETTINGS.ORIGIN_LATLNG.lat + x * SETTINGS.TILE_SIZE,
-    SETTINGS.ORIGIN_LATLNG.lng + y * SETTINGS.TILE_SIZE,
+    SETTINGS.ORIGIN_LATLNG.lat + j * SETTINGS.TILE_SIZE, // Vertical (north/south)
+    SETTINGS.ORIGIN_LATLNG.lng + i * SETTINGS.TILE_SIZE, // Horizontal (east/west)
   );
 }
 
@@ -55,10 +55,10 @@ function gridToLatLng(x: number, y: number): L.LatLng {
 function latLngToGrid(latlng: L.LatLng): Point {
   return {
     i: Math.floor(
-      (latlng.lat - SETTINGS.ORIGIN_LATLNG.lat) / SETTINGS.TILE_SIZE,
+      (latlng.lng - SETTINGS.ORIGIN_LATLNG.lng) / SETTINGS.TILE_SIZE,
     ),
     j: Math.floor(
-      (latlng.lng - SETTINGS.ORIGIN_LATLNG.lng) / SETTINGS.TILE_SIZE,
+      (latlng.lat - SETTINGS.ORIGIN_LATLNG.lat) / SETTINGS.TILE_SIZE,
     ),
   };
 }
@@ -75,15 +75,17 @@ const SETTINGS = {
   CELL_SPAWN_PROBABILITY: 0.1,
   GAMEPLAY_ZOOM_LEVEL: 19,
   WIN_SCORE: 64,
+  IN_RANGE_OPACITY: .8,
+  OUT_OF_RANGE_OPACITY: .3,
 };
 
 // ---------- Player variables ----------
 let playerValue = 0;
 let playerWon = false;
 
-let playerX = 0;
-let playerY = 0;
-let playerLatLng = leaflet.latLng(playerX, playerY);
+let playerI = 0; // East-west (affects lng)
+let playerJ = 0; // North-south (affects lat)
+let playerLatLng = gridToLatLng(playerI, playerJ);
 
 // ---------- Map creation ----------
 const map = leaflet.map(mapDiv, {
@@ -117,7 +119,8 @@ interface Cell {
   i: number;
   j: number;
   value: number;
-  element: leaflet.Rectangle;
+  element?: leaflet.Rectangle;
+  popup?: HTMLDivElement;
 }
 
 class CellFactory {
@@ -162,6 +165,7 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
   popupDiv.querySelector("#take")!.addEventListener("click", () => {
     if (withinRange(cell.i, cell.j)) {
       // Swap token values
+      if (playerValue === 0 && cell.value === 0) return; // Skip action
       const temp = playerValue;
       playerValue = cell.value;
       cell.value = temp;
@@ -173,6 +177,10 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
       if (playerValue == SETTINGS.WIN_SCORE) {
         playerWon = true;
       }
+
+      // Update popup UI
+      const valueSpan = popupDiv.querySelector("#value")!;
+      valueSpan.textContent = cell.value.toString();
 
       updateCellAppearance(cell);
       updateStatus();
@@ -205,9 +213,9 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
 // ---------- Cell Management ----------
 // Update the cells within the player's view
 function updateVisibleCells() {
-  const bounds = map.getBounds();
-  const min = latLngToGrid(bounds.getSouthWest());
-  const max = latLngToGrid(bounds.getNorthEast());
+  const cellRectBounds = map.getBounds();
+  const min = latLngToGrid(cellRectBounds.getSouthWest());
+  const max = latLngToGrid(cellRectBounds.getNorthEast());
 
   const margin = 1;
   const visibleNow = new Set<string>(); // track which cells *should* be visible
@@ -235,19 +243,23 @@ function updateVisibleCells() {
       const cell = CellFactory.create(i, j);
 
       // Create rectangle
-      const bounds = cellBounds(i, j);
-      const element = leaflet.rectangle(bounds, {
+      const rectBounds = cellBounds(i, j);
+      const element = leaflet.rectangle(rectBounds, {
         color: valueToColor(cell.value),
         weight: 1,
-        fillOpacity: withinRange(i, j) ? 0.6 : 0.2,
+        fillOpacity: withinRange(i, j)
+          ? SETTINGS.IN_RANGE_OPACITY
+          : SETTINGS.OUT_OF_RANGE_OPACITY,
       }).addTo(map);
 
       cell.element = element;
 
-      // Only bind popup if within range
+      // Only create popup once
       if (withinRange(i, j)) {
-        const popup = createPopupContent(cell);
-        element.bindPopup(popup);
+        if (!cell.popup) {
+          cell.popup = createPopupContent(cell);
+        }
+        element.bindPopup(cell.popup);
       } else {
         element.bindTooltip("Too far away!", { permanent: false });
       }
@@ -260,7 +272,7 @@ function updateVisibleCells() {
   // Remove cells that went offscreen
   for (const [key, cell] of renderedCells.entries()) {
     if (!visibleNow.has(key)) {
-      cell.element.removeFrom(map);
+      cell.element?.removeFrom(map);
       renderedCells.delete(key);
     }
   }
@@ -270,34 +282,34 @@ function refreshCellInteractivity() {
   for (const [, cell] of renderedCells) {
     const inRange = withinRange(cell.i, cell.j);
 
-    cell.element.setStyle({
-      fillOpacity: inRange ? 0.6 : 0.2,
+    cell.element?.setStyle({
+      fillOpacity: inRange
+        ? SETTINGS.IN_RANGE_OPACITY
+        : SETTINGS.OUT_OF_RANGE_OPACITY,
     });
 
-    cell.element.unbindPopup();
-    cell.element.unbindTooltip();
+    cell.element?.unbindPopup();
+    cell.element?.unbindTooltip();
 
     if (inRange) {
-      const popup = createPopupContent(cell);
-      cell.element.bindPopup(popup);
+      if (!cell.popup) {
+        cell.popup = createPopupContent(cell);
+      }
+      cell.element?.bindPopup(cell.popup);
     } else {
-      cell.element.bindTooltip("Too far away!", { permanent: false });
+      cell.element?.bindTooltip("Too far away!", { permanent: false });
     }
   }
 }
 
 // Check if player is within interaction distance
 function withinRange(i: number, j: number): boolean {
-  if (
-    i <= playerX + SETTINGS.INTERACT_DISTANCE &&
-    i >= playerX - SETTINGS.INTERACT_DISTANCE &&
-    j <= playerY + SETTINGS.INTERACT_DISTANCE &&
-    j >= playerY - SETTINGS.INTERACT_DISTANCE
-  ) {
-    return true;
-  } else {
-    return false;
-  }
+  return (
+    i <= playerI + SETTINGS.INTERACT_DISTANCE &&
+    i >= playerI - SETTINGS.INTERACT_DISTANCE &&
+    j <= playerJ + SETTINGS.INTERACT_DISTANCE &&
+    j >= playerJ - SETTINGS.INTERACT_DISTANCE
+  );
 }
 
 // Change cell color depending on value
@@ -311,9 +323,11 @@ function valueToColor(value: number): string {
 // ---------- Update status elements ----------
 // Update cell appearance on interact
 function updateCellAppearance(cell: Cell): void {
-  cell.element.setStyle({
+  cell.element?.setStyle({
     color: valueToColor(cell.value),
-    fillOpacity: withinRange(cell.i, cell.j) ? 0.6 : 0.2,
+    fillOpacity: withinRange(cell.i, cell.j)
+      ? SETTINGS.IN_RANGE_OPACITY
+      : SETTINGS.OUT_OF_RANGE_OPACITY,
   });
 }
 
@@ -329,24 +343,24 @@ function updateStatus(): void {
 
 // Update player marker position when coords change
 function updatePlayerMarker() {
-  playerLatLng = gridToLatLng(playerX, playerY);
+  playerLatLng = gridToLatLng(playerI, playerJ);
   playerMarker.setLatLng(playerLatLng);
 }
 
 // ---------- Player movement ----------
 // Direction mappings: class name → [dx, dy]
 const directions = {
-  up: [1, 0],
-  right: [0, 1],
-  down: [-1, 0],
-  left: [0, -1],
+  up: [0, 1], // +Lat → north
+  right: [1, 0], // +Lng → east
+  down: [0, -1], // -Lat → south
+  left: [-1, 0], // -Lng → west
 };
 
 // Set up D-pad buttons
 Object.entries(directions).forEach(([dir, [dx, dy]]) => {
   dPad.querySelector(`.${dir}`)?.addEventListener("click", () => {
-    playerX += dx;
-    playerY += dy;
+    playerI += dx;
+    playerJ += dy;
     updatePlayerMarker();
     updateVisibleCells();
     refreshCellInteractivity();
