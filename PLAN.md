@@ -67,3 +67,19 @@ Key gameplay challenge: Can cells have a persistent memory that remembers what h
 - [x] cache flyweight appearances to make it even more efficient
 - [x] make sure cells save information and load them when necessary
 - [x] refactor memento pattern to separate data and visuals
+
+## D3.d: Gameplay across real-world space and time (player location)
+
+Key technical challenge: Can you make use of the browser's geolocation API to control player movement based on their real-world location?
+Key gameplay challenge: Can you allow player freedom, such as saving the game, resetting, etc, in your game?
+
+### Steps
+
+- [ ] research and understand the browser's geolocation API
+- [ ] hide the on-screen movement buttons
+- [ ] sync the player's position to the location given by the API
+- [ ] add a toggle for turning on the movement buttons and turning off the location-based movement
+- [ ] use the browser's local storage API to save the game's data
+- [ ] load the game's data when the browser application is opened
+- [ ] add an option for the player to reset their game
+- [ ] update the UI to look nicer
