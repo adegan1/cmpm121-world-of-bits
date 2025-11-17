@@ -329,6 +329,7 @@
     width: 150px;
     height: 150px;
     gap: 6px;
+    right: 10px;
   }
 
   .d-pad button {
@@ -345,6 +346,7 @@
     padding: 12px 16px;
     font-size: 15px;
     bottom: 90px;
+    left: 10px;
   }
 
   #resetBtn {
@@ -380,11 +382,10 @@
   /* --- D-Pad buttons --- */
   .d-pad button {
     font-size: 26px;
-    min-width: 56px; /* recommended 48px minimum tap target */
+    min-width: 48px; /* recommended 48px minimum tap target */
     min-height: 56px;
     border-radius: 14px;
     padding: 10px;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
   }
 
   /* Slight highlight on press */
@@ -394,17 +395,17 @@
 
   /* --- Bottom spacing fixes --- */
   #centerBtn {
-    bottom: 94px;
+    bottom: 60px;
   }
 
   #movementToggleBtn {
-    bottom: 150px; /* lifted above D-pad */
+    bottom: 110px; /* lifted above D-pad */
     padding: 12px 18px;
     font-size: 15px;
   }
 
   #resetBtn {
-    bottom: 12px;
+    bottom: 10px;
     font-size: 15px;
   }
 }
