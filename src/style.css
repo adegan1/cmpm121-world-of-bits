@@ -75,15 +75,15 @@
 
 .d-pad {
   position: fixed;
-  bottom: 20px;
+  bottom: 25px;
   left: 50%;
   transform: translateX(-50%);
   display: none;
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
   gap: 4px;
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   z-index: 1000;
 }
 .d-pad button {
@@ -91,7 +91,7 @@
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 20px;
+  font-size: 30px;
   cursor: pointer;
   outline: none;
 }
@@ -113,21 +113,20 @@
 
 #centerBtn {
   position: absolute;
-  bottom: 110px;
-  left: 10px;
+  top: 20px;
+  left: 20px;
 
   padding: 10px 14px;
-  font-size: 16px;
-  font-weight: 600;
-
+  font-size: 20px;
   background: white;
   border: 2px solid #333;
-  border-radius: 8px;
+  border-radius: 10px;
 
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.25);
   cursor: pointer;
 
-  z-index: 1000; /* keep above map tiles */
+  z-index: 1000;
+  transition: background 0.2s ease, transform 0.1s ease;
 }
 
 #centerBtn:hover {
@@ -179,7 +178,7 @@
 
 #movementToggleBtn {
   position: absolute;
-  bottom: 110px;
+  top: 70px;
   right: 10px;
 
   padding: 10px 14px;
@@ -194,11 +193,13 @@
   cursor: pointer;
 
   z-index: 1000; /* keep above map tiles */
+
+  display: none;
 }
 
 #resetBtn {
   position: absolute;
-  bottom: 10px;
+  top: 120px;
   right: 10px;
 
   padding: 10px 14px;
@@ -213,6 +214,34 @@
   cursor: pointer;
 
   z-index: 1000; /* keep above map tiles */
+
+  display: none;
+}
+
+#settingsBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+
+  padding: 10px 14px;
+  font-size: 20px;
+  background: white;
+  border: 2px solid #333;
+  border-radius: 10px;
+
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+
+  z-index: 1000;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+#settingsBtn:hover {
+  background: #f0f0f0;
+}
+
+#settingsBtn:active {
+  transform: scale(0.9);
 }
 
 #winModal {
@@ -339,20 +368,6 @@
     border-radius: 10px;
   }
 
-  /* Buttons on edges: give more spacing */
-  #centerBtn,
-  #movementToggleBtn,
-  #resetBtn {
-    padding: 12px 16px;
-    font-size: 15px;
-    bottom: 90px;
-    left: 10px;
-  }
-
-  #resetBtn {
-    bottom: 14px;
-  }
-
   /* Win Modal: scale for smaller screens */
   .win-content {
     max-width: 260px;
@@ -391,21 +406,5 @@
   /* Slight highlight on press */
   .d-pad button:active {
     transform: scale(0.94);
-  }
-
-  /* --- Bottom spacing fixes --- */
-  #centerBtn {
-    bottom: 60px;
-  }
-
-  #movementToggleBtn {
-    bottom: 110px; /* lifted above D-pad */
-    padding: 12px 18px;
-    font-size: 15px;
-  }
-
-  #resetBtn {
-    bottom: 10px;
-    font-size: 15px;
   }
 }

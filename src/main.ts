@@ -29,6 +29,12 @@ const statusPanelDiv = document.createElement("div");
 statusPanelDiv.id = "statusPanel";
 document.body.append(statusPanelDiv);
 
+// Settings button
+const settingsBtn = document.createElement("button");
+settingsBtn.id = "settingsBtn";
+settingsBtn.textContent = "⚙️";
+document.body.appendChild(settingsBtn);
+
 // D-pad init for manual movement
 const dPad = document.createElement("div");
 dPad.className = "d-pad";
@@ -81,7 +87,7 @@ document.body.appendChild(resetBtn);
 // Center-on-player button
 const centerBtn = document.createElement("button");
 centerBtn.id = "centerBtn";
-centerBtn.textContent = "Center on Player";
+centerBtn.textContent = "📍";
 document.body.appendChild(centerBtn);
 
 // Continue button when player wins
@@ -733,6 +739,20 @@ resetBtn.addEventListener("click", () => {
   ) return;
   localStorage.removeItem("myGameSave");
   location.reload();
+});
+
+// ================================
+//          SETTINGS BUTTON
+// ================================
+let controlsVisible = false;
+
+settingsBtn.addEventListener("click", () => {
+  controlsVisible = !controlsVisible;
+
+  const display = controlsVisible ? "block" : "none";
+
+  movementToggleBtn.style.display = display;
+  resetBtn.style.display = display;
 });
 
 // ================================
