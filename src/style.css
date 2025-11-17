@@ -17,11 +17,10 @@
   font-size: 2.5rem;
   font-weight: 700;
   line-height: 1.2;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transition: background 0.3s;
+  color: #333;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: color 0.3s ease;
+  font-family: "Courier New", monospace;
 }
 
 .cell-popup button {
@@ -77,19 +76,7 @@
 #statusPanel .token-value {
   font-size: 2rem;
   font-weight: 800;
-  display: inline;
-  line-height: 1;
-  padding: 0;
-  margin-left: 5px;
-
-  background: linear-gradient(45deg, #ffd700, #ff7f50);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-
-  transition: transform 0.3s ease;
+  transition: color 0.3s ease, transform 0.2s ease;
 }
 
 #map {
@@ -237,4 +224,76 @@
   cursor: pointer;
 
   z-index: 1000; /* keep above map tiles */
+}
+
+#winModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+#winModal.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.win-content {
+  background: white;
+  padding: 40px 30px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 300px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.4s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+#winModal h2 {
+  margin: 0 0 12px 0;
+  font-size: 2rem;
+  color: #4caf50;
+}
+
+#winModal p {
+  margin: 0 0 20px 0;
+  color: #555;
+  font-size: 1rem;
+}
+
+#continueBtn {
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: bold;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#continueBtn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+#continueBtn:active {
+  transform: translateY(0);
 }

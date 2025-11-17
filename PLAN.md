@@ -83,4 +83,4 @@ Key gameplay challenge: Can you allow player freedom, such as saving the game, r
 - [x] use the browser's local storage API to save the game's data
 - [x] load the game's data when the browser application is opened
 - [x] add an option for the player to reset their game
-- [ ] update the UI to look nicer
+- [x] update the UI to look nicer
