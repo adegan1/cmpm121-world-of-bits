@@ -373,7 +373,7 @@
 
   /* Use more stable mobile-safe height */
   #map {
-    height: 75dvh; /* instead of 80vh */
+    height: 95dvh;
   }
 
   /* D-pad: enlarge touch targets */
