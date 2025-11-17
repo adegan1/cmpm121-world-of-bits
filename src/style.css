@@ -17,6 +17,11 @@
   font-size: 2.5rem;
   font-weight: 700;
   line-height: 1.2;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s;
   color: #333;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: color 0.3s ease;
@@ -40,11 +45,26 @@
 .cell-popup button:hover {
   background: #f0f0f0;
 }
+
 .cell-popup button:active {
   transform: scale(0.95);
 }
 
+/* Responsive adjustments for mobile */
+
+@media (max-width: 480px) {
+  .cell-popup .cell-value {
+    font-size: 2rem;
+  }
+
+  .cell-popup button {
+    max-width: 120px;
+    font-size: 0.95rem;
+  }
+}
+
 /* Status panel and score */
+
 #statusPanel {
   position: absolute;
   top: 10px;
@@ -65,6 +85,17 @@
 #statusPanel .token-value {
   font-size: 2rem;
   font-weight: 800;
+  display: inline;
+  line-height: 1;
+  padding: 0;
+  margin-left: 5px;
+  background: linear-gradient(45deg, #ffd700, #ff7f50);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
   transition: color 0.3s ease, transform 0.2s ease;
 }
 
@@ -86,6 +117,7 @@
   height: 120px;
   z-index: 1000;
 }
+
 .d-pad button {
   background: rgba(0, 0, 0, 0.7);
   color: white;
@@ -95,18 +127,23 @@
   cursor: pointer;
   outline: none;
 }
+
 .d-pad button:active {
   background: rgba(255, 255, 255, 0.3);
 }
+
 .up {
   grid-area: 1 / 2 / 2 / 3;
 }
+
 .left {
   grid-area: 2 / 1 / 3 / 2;
 }
+
 .right {
   grid-area: 2 / 3 / 3 / 4;
 }
+
 .down {
   grid-area: 3 / 2 / 4 / 3;
 }
@@ -115,18 +152,14 @@
   position: absolute;
   bottom: 110px;
   left: 10px;
-
   padding: 10px 14px;
   font-size: 16px;
   font-weight: 600;
-
   background: white;
   border: 2px solid #333;
   border-radius: 8px;
-
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-
   z-index: 1000; /* keep above map tiles */
 }
 
@@ -150,12 +183,14 @@
 }
 
 /* Message text */
+
 #loadingMessage {
   margin-bottom: 20px;
   text-align: center;
 }
 
 /* Retry button */
+
 #retryGPS {
   display: none; /* JS shows it only on error */
   padding: 10px 20px;
@@ -181,18 +216,14 @@
   position: absolute;
   bottom: 110px;
   right: 10px;
-
   padding: 10px 14px;
   font-size: 16px;
   font-weight: 600;
-
   background: white;
   border: 2px solid #333;
   border-radius: 8px;
-
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-
   z-index: 1000; /* keep above map tiles */
 }
 
@@ -200,18 +231,14 @@
   position: absolute;
   bottom: 10px;
   right: 10px;
-
   padding: 10px 14px;
   font-size: 16px;
   font-weight: 600;
-
   background: white;
   border: 2px solid #333;
   border-radius: 8px;
-
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-
   z-index: 1000; /* keep above map tiles */
 }
 
@@ -248,6 +275,7 @@
     transform: scale(0.8);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -285,79 +313,4 @@
 
 #continueBtn:active {
   transform: translateY(0);
-}
-
-/* ===============================
-   MOBILE OPTIMIZATIONS (< 480px)
-   =============================== */
-@media (max-width: 480px) {
-  /* Reduce popup padding + scale fonts */
-  .cell-popup {
-    padding: 10px 14px;
-    gap: 10px;
-    max-width: 92vw;
-  }
-
-  .cell-popup .cell-value {
-    font-size: 1.8rem;
-  }
-
-  .cell-popup button {
-    font-size: 0.95rem;
-    padding: 12px 14px;
-    max-width: 100%;
-    border-width: 1.5px;
-  }
-
-  /* Status panel scaling */
-  #statusPanel {
-    font-size: 16px;
-    padding: 10px 16px;
-  }
-
-  #statusPanel .token-value {
-    font-size: 1.6rem;
-  }
-
-  /* Use more stable mobile-safe height */
-  #map {
-    height: 75dvh; /* instead of 80vh */
-  }
-
-  /* D-pad: enlarge touch targets */
-  .d-pad {
-    width: 150px;
-    height: 150px;
-    gap: 6px;
-  }
-
-  .d-pad button {
-    font-size: 24px;
-    min-width: 48px; /* recommended thumb target */
-    min-height: 48px;
-    border-radius: 10px;
-  }
-
-  /* Buttons on edges: give more spacing */
-  #centerBtn,
-  #movementToggleBtn,
-  #resetBtn {
-    padding: 12px 16px;
-    font-size: 15px;
-    bottom: 90px;
-  }
-
-  #resetBtn {
-    bottom: 14px;
-  }
-
-  /* Win Modal: scale for smaller screens */
-  .win-content {
-    max-width: 260px;
-    padding: 28px 22px;
-  }
-
-  #winModal h2 {
-    font-size: 1.7rem;
-  }
 }
