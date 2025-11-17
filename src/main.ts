@@ -701,15 +701,10 @@ function loadGameState() {
     playerI = data.playerI;
     playerJ = data.playerJ;
     playerValue = data.playerValue;
-    winScore = data.winScore;
+    winScore = data.winScore ?? winScore;
     movementFacade.setMode(data.movementMode);
     updateMovementToggleText();
     updateDpadVisibility();
-
-    // Fix win score if empty
-    if (winScore == null) {
-      winScore = 64;
-    }
 
     modifiedCells.clear();
     for (const k in data.modifiedCells) {
