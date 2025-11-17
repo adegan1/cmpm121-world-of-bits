@@ -76,3 +76,46 @@
 #centerBtn:hover {
   background: #f0f0f0;
 }
+
+#loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  z-index: 2000;
+  backdrop-filter: blur(3px);
+}
+
+/* Message text */
+#loadingMessage {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Retry button */
+#retryGPS {
+  display: none; /* JS shows it only on error */
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+  background: white;
+  color: black;
+  font-weight: bold;
+  transition: background 0.2s, transform 0.1s;
+}
+
+#retryGPS:hover {
+  background: #e0e0e0;
+}
+
+#retryGPS:active {
+  transform: scale(0.95);
+}

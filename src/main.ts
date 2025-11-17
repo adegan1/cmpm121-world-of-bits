@@ -34,6 +34,26 @@ dPad.innerHTML = `
 dPad.className = "d-pad";
 document.body.appendChild(dPad);
 
+// Create loading overlay
+const loadingOverlay = document.createElement("div");
+loadingOverlay.id = "loadingOverlay";
+
+loadingOverlay.innerHTML = `
+  <div id="loadingMessage">Getting your location…</div>
+  <button id="retryGPS">Retry GPS</button>
+`;
+
+document.body.appendChild(loadingOverlay);
+
+// References
+const loadingMessage = loadingOverlay.querySelector(
+  "#loadingMessage",
+) as HTMLDivElement;
+const retryBtn = loadingOverlay.querySelector("#retryGPS") as HTMLButtonElement;
+
+// Hide retry button initially
+retryBtn.style.display = "none";
+
 // ---------- Coordinate System Abstraction ----------
 interface Point {
   i: number;
@@ -113,6 +133,56 @@ playerMarker.addTo(map);
 
 // Update cells when finished moving map
 map.on("moveend", updateVisibleCells);
+
+// ---------- Geolocation Setup ----------
+function geoSuccess(position: GeolocationPosition) {
+  const { latitude, longitude } = position.coords;
+
+  // Convert actual GPS coordinate to grid position
+  playerLatLng = leaflet.latLng(latitude, longitude);
+  playerI = Math.floor(
+    (longitude - SETTINGS.ORIGIN_LATLNG.lng) / SETTINGS.TILE_SIZE,
+  );
+  playerJ = Math.floor(
+    (latitude - SETTINGS.ORIGIN_LATLNG.lat) / SETTINGS.TILE_SIZE,
+  );
+
+  updatePlayerMarker();
+  updateVisibleCells();
+  refreshCellInteractivity();
+  updateStatus();
+
+  // Center map on actual GPS location
+  map.setView(playerLatLng);
+
+  // Remove loading overlay completely
+  document.getElementById("loadingOverlay")?.remove();
+}
+
+function geoError(error: GeolocationPositionError) {
+  loadingMessage.textContent = "Unable to get location. Please enable GPS.";
+  retryBtn.style.display = "inline-block";
+
+  console.warn("Geolocation error:", error);
+}
+
+function requestGPS() {
+  loadingMessage.textContent = "Getting your location…";
+  retryBtn.style.display = "none";
+
+  navigator.geolocation.getCurrentPosition(geoSuccess, geoError, {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 10000,
+  });
+}
+
+// Hook up the retry button
+retryBtn.addEventListener("click", () => {
+  loadingMessage.textContent = "Retrying…";
+  retryBtn.style.display = "none";
+  requestGPS();
+});
 
 // ---------- Cell Functionality ----------
 interface Cell {
@@ -419,8 +489,7 @@ function centerView(animateMap: boolean, moveDuration: number) {
 // ---------- Initial calls ----------
 updateVisibleCells();
 updateStatus();
-syncPlayerToGeolocation();
-centerView(true, 0.1);
+requestGPS();
 
 // Sync player location every 3 seconds
 setInterval(syncPlayerToGeolocation, 3000);
