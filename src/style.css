@@ -21,7 +21,7 @@
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  display: grid;
+  display: none;
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr;
   gap: 4px;
@@ -118,4 +118,23 @@
 
 #retryGPS:active {
   transform: scale(0.95);
+}
+
+#movementToggleBtn {
+  position: absolute;
+  bottom: 110px;
+  right: 10px;
+
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 600;
+
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+
+  z-index: 1000; /* keep above map tiles */
 }
