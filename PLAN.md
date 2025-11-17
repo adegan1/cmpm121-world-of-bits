@@ -65,8 +65,8 @@ Key gameplay challenge: Can cells have a persistent memory that remembers what h
 - [x] update the updateVisibleCells() function to use the new flyweight logic
 - [x] update the player actions to create cells
 - [x] cache flyweight appearances to make it even more efficient
-- [x] make sure cells save information and load them when necessary
-- [x] refactor memento pattern to separate data and visuals
+- [x] make sure cells save information and load them when necessary (use some varient of the memento pattern)
+- [x] refactor memory pattern to separate data and visuals
 
 ## D3.d: Gameplay across real-world space and time (player location)
 

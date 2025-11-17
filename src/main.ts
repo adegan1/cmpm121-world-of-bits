@@ -192,9 +192,11 @@ interface Cell {
   popup?: HTMLDivElement;
 }
 
+// Flyweight pattern friendly cell maps
 const renderedCells = new Map<string, Cell>();
 const modifiedCells = new Map<string, Cell>();
 
+// Create a cell factory to utilize the flyweight pattern
 class CellFactory {
   static create(i: number, j: number): Cell {
     const key = `${i},${j}`;
@@ -301,12 +303,16 @@ function updateVisibleCells() {
       j <= Math.ceil(max.j) + margin;
       j++
     ) {
+      // Set the key of the cell at this position for memory (in memento-akin pattern)
       const key = `${i},${j}`;
       visibleNow.add(key);
 
       if (luck([i, j].toString()) >= SETTINGS.CELL_SPAWN_PROBABILITY) continue;
+
+      // Use existing memory key
       if (renderedCells.has(key)) continue;
 
+      // Place cells using flyweight pattern
       const cell = CellFactory.create(i, j);
       const element = leaflet.rectangle(cellBounds(i, j), {
         color: valueToColor(cell.value),
