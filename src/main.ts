@@ -706,6 +706,11 @@ function loadGameState() {
     updateMovementToggleText();
     updateDpadVisibility();
 
+    // Fix win score if empty
+    if (winScore == null) {
+      winScore = 64;
+    }
+
     modifiedCells.clear();
     for (const k in data.modifiedCells) {
       modifiedCells.set(k, { ...data.modifiedCells[k] });
