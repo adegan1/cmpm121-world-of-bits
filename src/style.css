@@ -1,14 +1,95 @@
-#controlPanel {
-  width: 10px;
-  height: 10px;
-  padding: auto;
+/* Cell popup */
+.cell-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  min-width: 100px;
+  max-width: 90vw;
 }
 
+.cell-popup .cell-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s;
+}
+
+.cell-popup button {
+  padding: 10px 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 2px solid #333;
+  background: white;
+  color: black;
+  cursor: pointer;
+  width: 100%;
+  max-width: 140px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.cell-popup button:hover {
+  background: #f0f0f0;
+}
+.cell-popup button:active {
+  transform: scale(0.95);
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 480px) {
+  .cell-popup .cell-value {
+    font-size: 2rem;
+  }
+  .cell-popup button {
+    max-width: 120px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Status panel and score */
 #statusPanel {
-  padding: 5px;
-  border-top: 5px solid rgb(85, 85, 85);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: larger;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  font-family: "Arial", Helvetica, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  z-index: 1000;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+#statusPanel .token-value {
+  font-size: 2rem;
+  font-weight: 800;
+  display: inline;
+  line-height: 1;
+  padding: 0;
+  margin-left: 5px;
+
+  background: linear-gradient(45deg, #ffd700, #ff7f50);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  transition: transform 0.3s ease;
 }
 
 #map {
@@ -56,8 +137,8 @@
 
 #centerBtn {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
+  bottom: 110px;
+  left: 10px;
 
   padding: 10px 14px;
   font-size: 16px;
@@ -123,6 +204,25 @@
 #movementToggleBtn {
   position: absolute;
   bottom: 110px;
+  right: 10px;
+
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 600;
+
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+
+  z-index: 1000; /* keep above map tiles */
+}
+
+#resetBtn {
+  position: absolute;
+  bottom: 10px;
   right: 10px;
 
   padding: 10px 14px;

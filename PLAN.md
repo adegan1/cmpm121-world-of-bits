@@ -80,7 +80,7 @@ Key gameplay challenge: Can you allow player freedom, such as saving the game, r
 - [x] sync the player's position to the location given by the API
 - [x] add a button to center the map on the player
 - [x] add a toggle for turning on the movement buttons and turning off the location-based movement
-- [ ] use the browser's local storage API to save the game's data
-- [ ] load the game's data when the browser application is opened
-- [ ] add an option for the player to reset their game
+- [x] use the browser's local storage API to save the game's data
+- [x] load the game's data when the browser application is opened
+- [x] add an option for the player to reset their game
 - [ ] update the UI to look nicer

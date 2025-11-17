@@ -1,17 +1,19 @@
+// ================================
+//          IMPORTS
+// ================================
+// Type support for Leaflet
 // @deno-types="npm:@types/leaflet"
 import leaflet from "leaflet";
 
-// ---------- Style sheets and other imports ----------
+// CSS and supporting scripts
 import "leaflet/dist/leaflet.css";
+import "./_leafletWorkaround.ts"; // fix for missing Leaflet images
+import luck from "./_luck.ts";
 import "./style.css";
 
-// Fix missing marker images
-import "./_leafletWorkaround.ts";
-
-// Import luck function
-import luck from "./_luck.ts";
-
-// ---------- UI Elements ----------
+// ================================
+//           UI ELEMENTS
+// ================================
 const controlPanelDiv = document.createElement("div");
 controlPanelDiv.id = "controlPanel";
 document.body.append(controlPanelDiv);
@@ -24,17 +26,18 @@ const statusPanelDiv = document.createElement("div");
 statusPanelDiv.id = "statusPanel";
 document.body.append(statusPanelDiv);
 
+// D-pad for manual movement
 const dPad = document.createElement("div");
+dPad.className = "d-pad";
 dPad.innerHTML = `
   <button class="up">⬆️</button>
   <button class="left">⬅️</button>
   <button class="right">➡️</button>
   <button class="down">⬇️</button>
 `;
-dPad.className = "d-pad";
 document.body.appendChild(dPad);
 
-// Create loading overlay
+// Loading overlay for GPS
 const loadingOverlay = document.createElement("div");
 loadingOverlay.id = "loadingOverlay";
 loadingOverlay.innerHTML = `
@@ -47,24 +50,46 @@ const loadingMessage = loadingOverlay.querySelector(
   "#loadingMessage",
 ) as HTMLDivElement;
 const retryBtn = loadingOverlay.querySelector("#retryGPS") as HTMLButtonElement;
-
-// Hide retry button initially
-retryBtn.style.display = "none";
+retryBtn.style.display = "none"; // initially hidden
 
 // Movement toggle button
 const movementToggleBtn = document.createElement("button");
 movementToggleBtn.id = "movementToggleBtn";
-movementToggleBtn.textContent = "Switch to Manual Movement";
 document.body.appendChild(movementToggleBtn);
 
-// ---------- Coordinate System ----------
+// Reset button
+const resetBtn = document.createElement("button");
+resetBtn.id = "resetBtn";
+resetBtn.textContent = "Reset Game";
+document.body.appendChild(resetBtn);
+
+// Center-on-player button
+const centerBtn = document.createElement("button");
+centerBtn.id = "centerBtn";
+centerBtn.textContent = "Center on Player";
+document.body.appendChild(centerBtn);
+
+// ================================
+//          GAME SETTINGS
+// ================================
+const SETTINGS = {
+  ORIGIN_LATLNG: leaflet.latLng(0, 0),
+  TILE_SIZE: 1e-4,
+  INTERACT_DISTANCE: 3,
+  CELL_SPAWN_PROBABILITY: 0.1,
+  GAMEPLAY_ZOOM_LEVEL: 19,
+  WIN_SCORE: 64,
+  IN_RANGE_OPACITY: 0.8,
+  OUT_OF_RANGE_OPACITY: 0.3,
+};
+
+// ================================
+//        COORDINATE HELPERS
+// ================================
 interface Point {
   i: number;
   j: number;
 }
-
-const renderedCells = new Map<string, Cell>();
-const modifiedCells = new Map<string, Cell>();
 
 function gridToLatLng(i: number, j: number): L.LatLng {
   return leaflet.latLng(
@@ -88,26 +113,18 @@ function cellBounds(x: number, y: number): L.LatLngBounds {
   return leaflet.latLngBounds(gridToLatLng(x, y), gridToLatLng(x + 1, y + 1));
 }
 
-// ---------- Settings ----------
-const SETTINGS = {
-  ORIGIN_LATLNG: leaflet.latLng(0, 0),
-  TILE_SIZE: 1e-4,
-  INTERACT_DISTANCE: 3,
-  CELL_SPAWN_PROBABILITY: 0.1,
-  GAMEPLAY_ZOOM_LEVEL: 19,
-  WIN_SCORE: 64,
-  IN_RANGE_OPACITY: 0.8,
-  OUT_OF_RANGE_OPACITY: 0.3,
-};
-
-// ---------- Player State ----------
-let playerValue = 0;
-let playerWon = false;
+// ================================
+//          PLAYER STATE
+// ================================
 let playerI = 0;
 let playerJ = 0;
 let playerLatLng = gridToLatLng(playerI, playerJ);
+let playerValue = 0;
+let playerWon = false;
 
-// ---------- Map Setup ----------
+// ================================
+//            MAP SETUP
+// ================================
 const map = leaflet.map(mapDiv, {
   center: SETTINGS.ORIGIN_LATLNG,
   zoom: SETTINGS.GAMEPLAY_ZOOM_LEVEL,
@@ -123,13 +140,13 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
-const playerMarker = leaflet.marker(SETTINGS.ORIGIN_LATLNG);
+// Player marker
+const playerMarker = leaflet.marker(SETTINGS.ORIGIN_LATLNG).addTo(map);
 playerMarker.bindTooltip("You");
-playerMarker.addTo(map);
 
-map.on("moveend", updateVisibleCells);
-
-// ---------- Cell System ----------
+// ================================
+//          CELL LOGIC
+// ================================
 interface Cell {
   i: number;
   j: number;
@@ -138,35 +155,51 @@ interface Cell {
   popup?: HTMLDivElement;
 }
 
+const renderedCells = new Map<string, Cell>();
+const modifiedCells = new Map<string, Cell>();
+
 class CellFactory {
   static create(i: number, j: number): Cell {
     const key = `${i},${j}`;
     if (modifiedCells.has(key)) return modifiedCells.get(key)!;
-    const randomFloat = luck(`${i}:${j}:initialValue`);
-    const value = randomFloat < 0.75 ? 2 : 4;
+    const value = luck(`${i}:${j}:initialValue`) < 0.75 ? 2 : 4;
     return { i, j, value, element: null as unknown as leaflet.Rectangle };
   }
 
   static modify(cell: Cell) {
-    const key = `${cell.i},${cell.j}`;
-    modifiedCells.set(key, cell);
+    modifiedCells.set(`${cell.i},${cell.j}`, cell);
   }
 }
 
-// ---------- Popups ----------
+// ================================
+//        POPUP LOGIC
+// ================================
 function createPopupContent(cell: Cell): HTMLDivElement {
   const div = document.createElement("div");
+  div.className = "cell-popup";
   div.innerHTML = `
-    <div>Cell: ${cell.i}, ${cell.j}. Value: <span id="value">${cell.value}</span></div>
-    <button id="take">Take</button>
-    <button id="place">Place</button>
+    <div class="cell-value">${cell.value}</div>
+    <button class="take">Take</button>
+    <button class="place">Place</button>
   `;
+
+  // Apply gradient to cell value immediately
+  const valueDiv = div.querySelector<HTMLDivElement>(".cell-value");
+  if (valueDiv) {
+    const gradient = getValueGradient(cell.value);
+    valueDiv.style.background = gradient;
+    valueDiv.style.webkitBackgroundClip = "text";
+    valueDiv.style.backgroundClip = "text";
+    valueDiv.style.webkitTextFillColor = "transparent";
+    valueDiv.style.color = "transparent";
+  }
+
   managePopup(cell, div);
   return div;
 }
 
 function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
-  popupDiv.querySelector("#take")!.addEventListener("click", () => {
+  popupDiv.querySelector(".take")!.addEventListener("click", () => {
     if (!withinRange(cell.i, cell.j)) return;
     if (playerValue === 0 && cell.value === 0) return;
 
@@ -175,29 +208,34 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
 
     if (playerValue === SETTINGS.WIN_SCORE) playerWon = true;
 
-    popupDiv.querySelector("#value")!.textContent = cell.value.toString();
     updateCellAppearance(cell);
     updateStatus();
+    saveGameState();
   });
 
-  popupDiv.querySelector("#place")!.addEventListener("click", () => {
+  popupDiv.querySelector(".place")!.addEventListener("click", () => {
     if (!withinRange(cell.i, cell.j) || playerValue === 0) return;
+
     cell.value = cell.value === playerValue ? cell.value * 2 : playerValue;
     CellFactory.modify(cell);
+
     playerValue = 0;
 
     updateCellAppearance(cell);
     updateStatus();
-    popupDiv.querySelector("#value")!.textContent = cell.value.toString();
+    saveGameState();
   });
 }
 
-// ---------- Cell Management ----------
+// ================================
+//         CELL RENDERING
+// ================================
 function updateVisibleCells() {
   const bounds = map.getBounds();
   const min = latLngToGrid(bounds.getSouthWest());
   const max = latLngToGrid(bounds.getNorthEast());
   const margin = 1;
+
   const visibleNow = new Set<string>();
 
   for (
@@ -212,12 +250,12 @@ function updateVisibleCells() {
     ) {
       const key = `${i},${j}`;
       visibleNow.add(key);
+
       if (luck([i, j].toString()) >= SETTINGS.CELL_SPAWN_PROBABILITY) continue;
       if (renderedCells.has(key)) continue;
 
       const cell = CellFactory.create(i, j);
-      const rectBounds = cellBounds(i, j);
-      const element = leaflet.rectangle(rectBounds, {
+      const element = leaflet.rectangle(cellBounds(i, j), {
         color: valueToColor(cell.value),
         weight: 1,
         fillOpacity: withinRange(i, j)
@@ -238,6 +276,7 @@ function updateVisibleCells() {
     }
   }
 
+  // Remove cells outside visible area
   for (const [key, cell] of renderedCells.entries()) {
     if (!visibleNow.has(key)) {
       cell.element?.removeFrom(map);
@@ -249,11 +288,13 @@ function updateVisibleCells() {
 function refreshCellInteractivity() {
   for (const [, cell] of renderedCells) {
     const inRange = withinRange(cell.i, cell.j);
+
     cell.element?.setStyle({
       fillOpacity: inRange
         ? SETTINGS.IN_RANGE_OPACITY
         : SETTINGS.OUT_OF_RANGE_OPACITY,
     });
+
     cell.element?.unbindPopup();
     cell.element?.unbindTooltip();
 
@@ -279,42 +320,84 @@ function valueToColor(value: number) {
   return `hsl(${hue}, 100%, ${lightness}%)`;
 }
 
+function getValueGradient(value: number): string {
+  if (value <= 2) return "linear-gradient(45deg, #b0c4de, #add8e6)";
+  if (value <= 8) return "linear-gradient(45deg, #98fb98, #32cd32)";
+  if (value <= 32) return "linear-gradient(45deg, #ffd700, #ffa500)";
+  if (value <= 128) return "linear-gradient(45deg, #ff7f50, #ff4500)";
+  return "linear-gradient(45deg, #ff1493, #c71585)";
+}
+
 function updateCellAppearance(cell: Cell) {
-  cell.element?.setStyle({
+  if (!cell.element) return;
+
+  cell.element.setStyle({
     color: valueToColor(cell.value),
     fillOpacity: withinRange(cell.i, cell.j)
       ? SETTINGS.IN_RANGE_OPACITY
       : SETTINGS.OUT_OF_RANGE_OPACITY,
   });
+
+  if (cell.popup) {
+    const valueDiv = cell.popup.querySelector<HTMLDivElement>(".cell-value");
+    if (valueDiv) {
+      valueDiv.textContent = cell.value.toString();
+      const gradient = getValueGradient(cell.value);
+      valueDiv.style.background = gradient;
+    }
+  }
 }
+
+// ================================
+//         STATUS PANEL
+// ================================
+let lastPlayerValue = -1;
 
 function updateStatus() {
-  statusPanelDiv.innerHTML = playerWon
-    ? "Congrats! You won!"
-    : `Current token value: ${playerValue} <br><br> Win if holding: ${SETTINGS.WIN_SCORE}`;
+  if (playerWon) {
+    statusPanelDiv.innerHTML = "🎉 Congrats! You won!";
+    return;
+  }
+
+  statusPanelDiv.innerHTML =
+    `Current token value: <span class="token-value">${playerValue}</span><br><br>Win if holding: ${SETTINGS.WIN_SCORE}`;
+
+  const valueSpan = statusPanelDiv.querySelector<HTMLSpanElement>(
+    ".token-value",
+  );
+  if (valueSpan) {
+    // Dynamic gradient for value
+    valueSpan.style.background = getValueGradient(playerValue);
+
+    // Animate on change
+    if (playerValue !== lastPlayerValue) {
+      valueSpan.style.transform = "scale(1.3)";
+      setTimeout(() => valueSpan.style.transform = "scale(1)", 150);
+    }
+  }
+
+  lastPlayerValue = playerValue;
 }
 
-function updatePlayerMarker() {
-  playerLatLng = gridToLatLng(playerI, playerJ);
-  playerMarker.setLatLng(playerLatLng);
-}
-
-// ---------- Player Movement Facade ----------
+// ================================
+//          PLAYER MOVEMENT
+// ================================
 interface MovementController {
   start(): void;
   stop(): void;
   onMove(callback: (i: number, j: number) => void): void;
 }
 
+// GPS-based movement
 class GPSMovement implements MovementController {
   private moveCallback: (i: number, j: number) => void = () => {};
   private watchId: number | null = null;
 
-  onMove(callback: (i: number, j: number) => void): void {
-    this.moveCallback = callback;
+  onMove(cb: (i: number, j: number) => void) {
+    this.moveCallback = cb;
   }
 
-  start(): void {
+  start() {
     if (!navigator.geolocation) return;
     this.watchId = navigator.geolocation.watchPosition(
       (pos) => {
@@ -328,20 +411,20 @@ class GPSMovement implements MovementController {
     );
   }
 
-  stop(): void {
+  stop() {
     if (this.watchId !== null) navigator.geolocation.clearWatch(this.watchId);
     this.watchId = null;
   }
 }
 
+// Manual movement via D-pad
 class ManualMovement implements MovementController {
   private moveCallback: (i: number, j: number) => void = () => {};
   private enabled = false;
 
   constructor(private dPadElement: HTMLElement) {
-    // Attach button listeners once in the constructor
     this.dPadElement.querySelector(".up")?.addEventListener("click", () => {
-      if (this.enabled) this.moveCallback(0, +1);
+      if (this.enabled) this.moveCallback(0, 1);
     });
     this.dPadElement.querySelector(".down")?.addEventListener("click", () => {
       if (this.enabled) this.moveCallback(0, -1);
@@ -350,39 +433,38 @@ class ManualMovement implements MovementController {
       if (this.enabled) this.moveCallback(-1, 0);
     });
     this.dPadElement.querySelector(".right")?.addEventListener("click", () => {
-      if (this.enabled) this.moveCallback(+1, 0);
+      if (this.enabled) this.moveCallback(1, 0);
     });
   }
 
-  onMove(callback: (i: number, j: number) => void): void {
-    this.moveCallback = callback;
+  onMove(cb: (i: number, j: number) => void) {
+    this.moveCallback = cb;
   }
 
-  start(): void {
+  start() {
     this.enabled = true;
-    this.dPadElement.style.display = "grid"; // show the D-pad
+    this.dPadElement.style.display = "grid";
   }
-
-  stop(): void {
+  stop() {
     this.enabled = false;
-    this.dPadElement.style.display = "none"; // hide the D-pad
+    this.dPadElement.style.display = "none";
   }
 }
 
+// Facade to manage movement mode
 class PlayerMovementFacade {
-  private gpsController: MovementController;
-  private manualController: MovementController;
-  private activeController: MovementController;
-  private currentMode: "gps" | "manual" = "gps"; // track current mode
+  private gps: MovementController;
+  private manual: MovementController;
+  private active: MovementController;
+  private currentMode: "gps" | "manual" = "gps";
 
-  constructor(dPadElement: HTMLElement) {
-    this.gpsController = new GPSMovement();
-    this.manualController = new ManualMovement(dPadElement);
-    this.activeController = this.gpsController;
+  constructor(dPadEl: HTMLElement) {
+    this.gps = new GPSMovement();
+    this.manual = new ManualMovement(dPadEl);
+    this.active = this.gps;
 
-    // All controllers report movement through here:
-    this.gpsController.onMove((i, j) => this.applyMovement(i, j, false));
-    this.manualController.onMove((di, dj) => this.applyMovement(di, dj, true));
+    this.gps.onMove((i, j) => this.applyMovement(i, j, false));
+    this.manual.onMove((di, dj) => this.applyMovement(di, dj, true));
   }
 
   private applyMovement(i: number, j: number, isDelta: boolean) {
@@ -398,91 +480,167 @@ class PlayerMovementFacade {
     updateVisibleCells();
     refreshCellInteractivity();
     updateStatus();
+    saveGameState();
   }
 
   setMode(mode: "gps" | "manual") {
-    this.activeController.stop();
-    this.activeController = mode === "gps"
-      ? this.gpsController
-      : this.manualController;
+    this.active.stop();
+    this.active = mode === "gps" ? this.gps : this.manual;
     this.currentMode = mode;
-    this.activeController.start();
+    this.active.start();
   }
 
-  getMode(): "gps" | "manual" {
+  getMode() {
     return this.currentMode;
   }
 }
 
-// ---------- Movement Toggle ----------
 const movementFacade = new PlayerMovementFacade(dPad);
-movementFacade.setMode("gps");
 
-// Add logic to movement toggle button
-movementToggleBtn.addEventListener("click", () => {
+// Update movement toggle button text
+function updateMovementToggleText() {
   if (movementFacade.getMode() === "gps") {
-    // Switch to manual
-    movementFacade.setMode("manual");
-    movementToggleBtn.textContent = "Switch to GPS Movement";
-  } else {
-    // Switch to GPS
-    movementFacade.setMode("gps");
     movementToggleBtn.textContent = "Switch to Manual Movement";
-  }
+  } else movementToggleBtn.textContent = "Switch to GPS Movement";
+}
+
+movementToggleBtn.addEventListener("click", () => {
+  if (movementFacade.getMode() === "gps") movementFacade.setMode("manual");
+  else movementFacade.setMode("gps");
+  updateMovementToggleText();
 });
 
-// ---------- GPS Retry ----------
+// ================================
+//           GPS FUNCTIONS
+// ================================
+function requestGPS() {
+  if (!navigator.geolocation) {
+    console.warn("Geolocation not available. Switching to manual mode.");
+    movementFacade.setMode("manual");
+    loadingOverlay.remove();
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const p = latLngToGrid(
+        leaflet.latLng(pos.coords.latitude, pos.coords.longitude),
+      );
+      playerI = p.i;
+      playerJ = p.j;
+      playerLatLng = leaflet.latLng(pos.coords.latitude, pos.coords.longitude);
+
+      updatePlayerMarker();
+      updateVisibleCells();
+      refreshCellInteractivity();
+      updateStatus();
+      loadingOverlay.remove();
+      map.setView(playerLatLng, SETTINGS.GAMEPLAY_ZOOM_LEVEL);
+    },
+    () => {
+      loadingMessage.textContent = "Unable to get location. Please enable GPS.";
+      retryBtn.style.display = "inline-block";
+      movementFacade.setMode("manual");
+      updateMovementToggleText();
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+  );
+}
+
 retryBtn.addEventListener("click", () => {
   loadingMessage.textContent = "Retrying…";
   retryBtn.style.display = "none";
   requestGPS();
 });
 
-function requestGPS() {
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const p = latLngToGrid(
-        leaflet.latLng(position.coords.latitude, position.coords.longitude),
-      );
-      playerI = p.i;
-      playerJ = p.j;
-      playerLatLng = leaflet.latLng(
-        position.coords.latitude,
-        position.coords.longitude,
-      );
-      updatePlayerMarker();
-      updateVisibleCells();
-      refreshCellInteractivity();
-      updateStatus();
-      document.getElementById("loadingOverlay")?.remove();
-      map.setView(playerLatLng);
-    },
-    (_error) => {
-      loadingMessage.textContent = "Unable to get location. Please enable GPS.";
-      retryBtn.style.display = "inline-block";
-    },
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
-  );
+// ================================
+//         HELPER FUNCTIONS
+// ================================
+function updatePlayerMarker() {
+  playerLatLng = gridToLatLng(playerI, playerJ);
+  playerMarker.setLatLng(playerLatLng);
 }
-
-// ---------- Center Map Button ----------
-const centerBtn = document.createElement("button");
-centerBtn.id = "centerBtn";
-centerBtn.textContent = "Center on Player";
-document.body.appendChild(centerBtn);
 
 centerBtn.addEventListener("click", () => {
-  centerView(true, 0.4);
+  map.setView(playerLatLng, SETTINGS.GAMEPLAY_ZOOM_LEVEL, {
+    animate: true,
+    duration: 0.4,
+  });
 });
 
-function centerView(animateMap: boolean, moveDuration: number) {
-  map.setView(playerLatLng, SETTINGS.GAMEPLAY_ZOOM_LEVEL, {
-    animate: animateMap,
-    duration: moveDuration,
-  });
+// ================================
+//       SAVE / LOAD GAME STATE
+// ================================
+interface SaveData {
+  playerI: number;
+  playerJ: number;
+  playerValue: number;
+  playerWon: boolean;
+  movementMode: "gps" | "manual";
+  modifiedCells: { [key: string]: { i: number; j: number; value: number } };
 }
 
-// ---------- Initial Calls ----------
+function saveGameState() {
+  const data: SaveData = {
+    playerI,
+    playerJ,
+    playerValue,
+    playerWon,
+    movementMode: movementFacade.getMode(),
+    modifiedCells: Object.fromEntries(
+      Array.from(modifiedCells.entries()).map((
+        [k, c],
+      ) => [k, { i: c.i, j: c.j, value: c.value }]),
+    ),
+  };
+  localStorage.setItem("myGameSave", JSON.stringify(data));
+}
+
+function loadGameState() {
+  const saved = localStorage.getItem("myGameSave");
+  if (!saved) return;
+  try {
+    const data: SaveData = JSON.parse(saved);
+    playerI = data.playerI;
+    playerJ = data.playerJ;
+    playerValue = data.playerValue;
+    playerWon = data.playerWon;
+    movementFacade.setMode(data.movementMode);
+    updateMovementToggleText();
+
+    modifiedCells.clear();
+    for (const k in data.modifiedCells) {
+      modifiedCells.set(k, { ...data.modifiedCells[k] });
+    }
+
+    updatePlayerMarker();
+    updateVisibleCells();
+    refreshCellInteractivity();
+    updateStatus();
+  } catch (e) {
+    console.warn("Failed to load game state:", e);
+  }
+}
+
+// ================================
+//            RESET BUTTON
+// ================================
+resetBtn.addEventListener("click", () => {
+  if (
+    !confirm(
+      "Are you sure you want to reset the game? This will erase all progress.",
+    )
+  ) return;
+  localStorage.removeItem("myGameSave");
+  location.reload();
+});
+
+// ================================
+//          INITIALIZE GAME
+// ================================
+loadGameState();
 updateVisibleCells();
 updateStatus();
+updateMovementToggleText();
+movementFacade.setMode("gps"); // default
 requestGPS();
