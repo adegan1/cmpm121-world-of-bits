@@ -348,7 +348,38 @@ function updatePlayerMarker() {
 }
 
 // ---------- Player movement ----------
-// Direction mappings: class name → [dx, dy]
+// Play movement through geolocation
+function syncPlayerToGeolocation() {
+  if (!navigator.geolocation) {
+    console.warn("Geolocation not supported.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+
+      // Convert real-world lat/lng to grid coordinates
+      const p = latLngToGrid(leaflet.latLng(latitude, longitude));
+
+      playerI = p.i;
+      playerJ = p.j;
+
+      updatePlayerMarker();
+      updateVisibleCells();
+      refreshCellInteractivity();
+      updateStatus();
+
+      console.log(`Synced player to grid: (${playerI}, ${playerJ})`);
+    },
+    (err) => {
+      console.warn("Geolocation error:", err);
+    },
+    { enableHighAccuracy: true },
+  );
+}
+
+// Player movement through buttons
 const directions = {
   up: [0, 1], // +Lat → north
   right: [1, 0], // +Lng → east
@@ -368,6 +399,28 @@ Object.entries(directions).forEach(([dir, [dx, dy]]) => {
   });
 });
 
+// Center map on player location
+const centerBtn = document.createElement("button");
+centerBtn.id = "centerBtn";
+centerBtn.textContent = "Center on Player";
+document.body.appendChild(centerBtn);
+
+centerBtn.addEventListener("click", () => {
+  centerView(true, 0.4);
+});
+
+function centerView(animateMap: boolean, moveDuration: number) {
+  map.setView(playerLatLng, SETTINGS.GAMEPLAY_ZOOM_LEVEL, {
+    animate: animateMap,
+    duration: moveDuration,
+  });
+}
+
 // ---------- Initial calls ----------
 updateVisibleCells();
 updateStatus();
+syncPlayerToGeolocation();
+centerView(true, 0.1);
+
+// Sync player location every 3 seconds
+setInterval(syncPlayerToGeolocation, 3000);

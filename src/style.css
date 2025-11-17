@@ -53,3 +53,26 @@
 .down {
   grid-area: 3 / 2 / 4 / 3;
 }
+
+#centerBtn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 600;
+
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+
+  z-index: 1000; /* keep above map tiles */
+}
+
+#centerBtn:hover {
+  background: #f0f0f0;
+}

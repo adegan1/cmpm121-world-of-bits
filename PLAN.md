@@ -75,9 +75,10 @@ Key gameplay challenge: Can you allow player freedom, such as saving the game, r
 
 ### Steps
 
-- [ ] research and understand the browser's geolocation API
+- [x] research and understand the browser's geolocation API
 - [ ] hide the on-screen movement buttons
-- [ ] sync the player's position to the location given by the API
+- [x] sync the player's position to the location given by the API
+- [x] add a button to center the map on the player
 - [ ] add a toggle for turning on the movement buttons and turning off the location-based movement
 - [ ] use the browser's local storage API to save the game's data
 - [ ] load the game's data when the browser application is opened
