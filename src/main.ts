@@ -222,6 +222,9 @@ function createPopupContent(cell: Cell): HTMLDivElement {
     <button class="place">Place</button>
   `;
 
+  // Make it so clicks don't bubble to map
+  leaflet.DomEvent.disableClickPropagation(div);
+
   const valueDiv = div.querySelector<HTMLDivElement>(".cell-value");
   if (valueDiv) {
     valueDiv.textContent = cell.value.toString();
@@ -230,7 +233,7 @@ function createPopupContent(cell: Cell): HTMLDivElement {
   }
 
   // Stop popup from closing on button click
-  div.addEventListener("click", (e) => e.stopPropagation());
+  leaflet.DomEvent.disableClickPropagation(div);
 
   managePopup(cell, div);
   return div;
@@ -251,6 +254,10 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
     updateCellAppearance(cell);
     updateStatus();
     saveGameState();
+
+    // Refresh popup for mobile
+    cell.element?.getPopup()?.setContent(createPopupContent(cell));
+    cell.element?.getPopup()?.update();
   });
 
   popupDiv.querySelector(".place")!.addEventListener("click", () => {
@@ -266,6 +273,10 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
     updateCellAppearance(cell);
     updateStatus();
     saveGameState();
+
+    // Refresh popup for mobile
+    cell.element?.getPopup()?.setContent(createPopupContent(cell));
+    cell.element?.getPopup()?.update();
   });
 }
 
@@ -325,10 +336,12 @@ function updateVisibleCells() {
       cell.element = element;
 
       if (withinRange(i, j)) {
-        if (!cell.popup) {
-          cell.popup = createPopupContent(cell);
-        }
-        cell.element?.bindPopup(cell.popup);
+        if (!cell.popup) cell.popup = createPopupContent(cell);
+        element.bindPopup(() => createPopupContent(cell), {
+          autoClose: true,
+          closeOnClick: true,
+          closeOnEscapeKey: true,
+        });
       } else {
         element.bindTooltip("Too far away!", { permanent: false });
       }
@@ -361,10 +374,12 @@ function refreshCellInteractivity() {
     cell.element?.unbindTooltip();
 
     if (inRange) {
-      if (!cell.popup) {
-        cell.popup = createPopupContent(cell);
-      }
-      cell.element?.bindPopup(cell.popup);
+      if (!cell.popup) cell.popup = createPopupContent(cell);
+      cell.element?.bindPopup(() => createPopupContent(cell), {
+        autoClose: true,
+        closeOnClick: true,
+        closeOnEscapeKey: true,
+      });
     } else {
       cell.element?.bindTooltip("Too far away!", { permanent: false });
     }
