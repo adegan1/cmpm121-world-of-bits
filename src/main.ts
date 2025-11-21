@@ -325,12 +325,10 @@ function updateVisibleCells() {
       cell.element = element;
 
       if (withinRange(i, j)) {
-        if (!cell.popup) cell.popup = createPopupContent(cell);
-        element.bindPopup(() => createPopupContent(cell), {
-          autoClose: true,
-          closeOnClick: true,
-          closeOnEscapeKey: true,
-        });
+        if (!cell.popup) {
+          cell.popup = createPopupContent(cell);
+        }
+        cell.element?.bindPopup(cell.popup);
       } else {
         element.bindTooltip("Too far away!", { permanent: false });
       }
@@ -363,12 +361,10 @@ function refreshCellInteractivity() {
     cell.element?.unbindTooltip();
 
     if (inRange) {
-      if (!cell.popup) cell.popup = createPopupContent(cell);
-      cell.element?.bindPopup(() => createPopupContent(cell), {
-        autoClose: true,
-        closeOnClick: true,
-        closeOnEscapeKey: true,
-      });
+      if (!cell.popup) {
+        cell.popup = createPopupContent(cell);
+      }
+      cell.element?.bindPopup(cell.popup);
     } else {
       cell.element?.bindTooltip("Too far away!", { permanent: false });
     }
