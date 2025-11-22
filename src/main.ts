@@ -256,8 +256,11 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
     saveGameState();
 
     // Refresh popup for mobile
-    cell.element?.getPopup()?.setContent(createPopupContent(cell));
-    cell.element?.getPopup()?.update();
+    const popup = cell.element?.getPopup();
+    if (popup) {
+      popup.setContent(createPopupContent(cell));
+      setTimeout(() => popup.update(), 0); // Force refresh for mobile
+    }
   });
 
   popupDiv.querySelector(".place")!.addEventListener("click", () => {
@@ -275,8 +278,11 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
     saveGameState();
 
     // Refresh popup for mobile
-    cell.element?.getPopup()?.setContent(createPopupContent(cell));
-    cell.element?.getPopup()?.update();
+    const popup = cell.element?.getPopup();
+    if (popup) {
+      popup.setContent(createPopupContent(cell));
+      setTimeout(() => popup.update(), 0); // Force refresh for mobile
+    }
   });
 }
 
@@ -411,10 +417,10 @@ function getValueColor(value: number): string {
 function updateCellAppearance(cell: Cell) {
   if (!cell.element) return;
 
-  const popup = cell.element.getPopup();
+  const popup = cell.element?.getPopup();
   if (popup) {
     popup.setContent(createPopupContent(cell));
-    popup.update();
+    setTimeout(() => popup.update(), 0); // Force refresh for mobile
   }
 
   cell.element.setStyle({
