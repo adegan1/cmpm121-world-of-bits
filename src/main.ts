@@ -217,26 +217,33 @@ class CellFactory {
 function createPopupContent(cell: Cell): HTMLDivElement {
   const div = document.createElement("div");
   div.className = "cell-popup";
-  div.innerHTML = `
-    <div class="cell-value">${cell.value}</div>
-    <button class="take">Take</button>
-    <button class="place">Place</button>
-  `;
 
-  // Make it so clicks don't bubble to map
+  // Build structure (no innerHTML event binding issues)
+  const valueDiv = document.createElement("div");
+  valueDiv.className = "cell-value";
+  valueDiv.textContent = cell.value.toString();
+  valueDiv.style.backgroundClip = "text";
+  valueDiv.style.color = getValueColor(cell.value);
+
+  const takeBtn = document.createElement("button");
+  takeBtn.className = "take";
+  takeBtn.textContent = "Take";
+
+  const placeBtn = document.createElement("button");
+  placeBtn.className = "place";
+  placeBtn.textContent = "Place";
+
+  div.appendChild(valueDiv);
+  div.appendChild(takeBtn);
+  div.appendChild(placeBtn);
+
+  // Prevent all clicks from bubbling to the map (so popup stays open)
   leaflet.DomEvent.disableClickPropagation(div);
+  leaflet.DomEvent.disableScrollPropagation(div);
 
-  const valueDiv = div.querySelector<HTMLDivElement>(".cell-value");
-  if (valueDiv) {
-    valueDiv.textContent = cell.value.toString();
-    valueDiv.style.backgroundClip = "text";
-    valueDiv.style.color = getValueColor(cell.value);
-  }
-
-  // Stop popup from closing on button click
-  leaflet.DomEvent.disableClickPropagation(div);
-
+  // Attach popup action handling
   managePopup(cell, div);
+
   return div;
 }
 
@@ -255,13 +262,7 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
     updateCellAppearance(cell);
     updateStatus();
     saveGameState();
-
-    // Refresh popup for mobile
-    const popup = cell.element?.getPopup();
-    if (popup) {
-      popup.setContent(createPopupContent(cell));
-      setTimeout(() => popup.update(), 0); // Force refresh for mobile
-    }
+    refreshPopup(cell);
   });
 
   popupDiv.querySelector(".place")!.addEventListener("click", () => {
@@ -279,14 +280,22 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
     updateCellAppearance(cell);
     updateStatus();
     saveGameState();
-
-    // Refresh popup for mobile
-    const popup = cell.element?.getPopup();
-    if (popup) {
-      popup.setContent(createPopupContent(cell));
-      setTimeout(() => popup.update(), 0); // Force refresh for mobile
-    }
+    refreshPopup(cell);
   });
+}
+
+// Refresh popup
+function refreshPopup(cell: Cell) {
+  const popup = cell.element?.getPopup();
+  if (!popup) return;
+
+  const isOpen = popup.isOpen();
+  popup.setContent(createPopupContent(cell));
+
+  if (isOpen) {
+    // Force Leaflet to redraw popup layout & size
+    setTimeout(() => popup.update(), 0);
+  }
 }
 
 // Check to see if the player has won
@@ -383,11 +392,7 @@ function refreshCellInteractivity() {
     cell.element?.unbindTooltip();
 
     // Update popup content
-    const popup = cell.element?.getPopup();
-    if (popup) {
-      popup.setContent(createPopupContent(cell));
-      setTimeout(() => popup.update(), 0); // Force refresh for mobile
-    }
+    refreshPopup(cell);
     updateCellAppearance(cell);
 
     if (inRange) {
@@ -428,11 +433,7 @@ function getValueColor(value: number): string {
 function updateCellAppearance(cell: Cell) {
   if (!cell.element) return;
 
-  const popup = cell.element?.getPopup();
-  if (popup) {
-    popup.setContent(createPopupContent(cell));
-    setTimeout(() => popup.update(), 0); // Force refresh for mobile
-  }
+  refreshPopup(cell);
 
   cell.element.setStyle({
     color: valueToColor(cell.value),
