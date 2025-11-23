@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 // ================================
 //          IMPORTS
 // ================================
@@ -248,6 +249,9 @@ function createPopupContent(cell: Cell): HTMLDivElement {
 }
 
 function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
+  if ((popupDiv as any)._handlersAttached) return;
+  (popupDiv as any)._handlersAttached = true;
+
   popupDiv.querySelector(".take")!.addEventListener("click", () => {
     if (gamePaused) return;
 
@@ -286,15 +290,17 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
 
 // Refresh popup
 function refreshPopup(cell: Cell) {
+  if (!cell.popup) return;
+
+  const valueDiv = cell.popup.querySelector(".cell-value") as HTMLDivElement;
+  if (valueDiv) {
+    valueDiv.textContent = cell.value.toString();
+    valueDiv.style.color = getValueColor(cell.value);
+  }
+
   const popup = cell.element?.getPopup();
-  if (!popup) return;
-
-  const isOpen = popup.isOpen();
-  popup.setContent(createPopupContent(cell));
-
-  if (isOpen) {
-    // Force Leaflet to redraw popup layout & size
-    setTimeout(() => popup.update(), 0);
+  if (popup && popup.isOpen()) {
+    popup.update();
   }
 }
 
@@ -354,12 +360,14 @@ function updateVisibleCells() {
       cell.element = element;
 
       if (withinRange(i, j)) {
-        if (!cell.popup) cell.popup = createPopupContent(cell);
-        element.bindPopup(() => createPopupContent(cell), {
-          autoClose: true,
-          closeOnClick: true,
-          closeOnEscapeKey: true,
-        });
+        if (!cell.popup) {
+          cell.popup = createPopupContent(cell);
+          element.bindPopup(cell.popup, {
+            autoClose: true,
+            closeOnClick: true,
+            closeOnEscapeKey: true,
+          });
+        }
       } else {
         element.bindTooltip("Too far away!", { permanent: false });
       }
@@ -388,20 +396,15 @@ function refreshCellInteractivity() {
         : SETTINGS.OUT_OF_RANGE_OPACITY,
     });
 
-    cell.element?.unbindPopup();
-    cell.element?.unbindTooltip();
-
-    // Update popup content
-    refreshPopup(cell);
+    // Check for existing popup
+    if (cell.popup) {
+      refreshPopup(cell);
+    }
     updateCellAppearance(cell);
 
+    // Tooltip only reflects range — popup remains bound
     if (inRange) {
-      if (!cell.popup) cell.popup = createPopupContent(cell);
-      cell.element?.bindPopup(() => createPopupContent(cell), {
-        autoClose: true,
-        closeOnClick: true,
-        closeOnEscapeKey: true,
-      });
+      cell.element?.unbindTooltip();
     } else {
       cell.element?.bindTooltip("Too far away!", { permanent: false });
     }
@@ -426,14 +429,15 @@ function valueToColor(value: number) {
 // Get color for text
 function getValueColor(value: number): string {
   const hue = (Math.log2(value) * 45) % 360; // Spin around color wheel
+
+  if (!Number.isFinite(hue)) return "black"; // Return black if 0
+
   return `hsl(${hue}, 80%, 45%)`;
 }
 
 // Update cell appearance
 function updateCellAppearance(cell: Cell) {
   if (!cell.element) return;
-
-  refreshPopup(cell);
 
   cell.element.setStyle({
     color: valueToColor(cell.value),
