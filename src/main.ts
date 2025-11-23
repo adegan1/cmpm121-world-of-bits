@@ -167,6 +167,7 @@ const map = leaflet.map(mapDiv, {
   zoom: SETTINGS.GAMEPLAY_ZOOM_LEVEL,
   minZoom: SETTINGS.GAMEPLAY_ZOOM_LEVEL,
   maxZoom: SETTINGS.GAMEPLAY_ZOOM_LEVEL,
+  doubleClickZoom: false,
   zoomControl: false,
   scrollWheelZoom: false,
 });
@@ -266,9 +267,11 @@ function managePopup(cell: Cell, popupDiv: HTMLDivElement) {
   popupDiv.querySelector(".place")!.addEventListener("click", () => {
     if (gamePaused) return;
 
-    if (!withinRange(cell.i, cell.j) || playerValue === 0) return;
+    if (!withinRange(cell.i, cell.j)) return;
 
-    cell.value = cell.value === playerValue ? cell.value * 2 : playerValue;
+    if (playerValue != 0) {
+      cell.value = cell.value === playerValue ? cell.value * 2 : playerValue;
+    }
     CellFactory.modify(cell);
 
     playerValue = 0;
@@ -378,6 +381,14 @@ function refreshCellInteractivity() {
 
     cell.element?.unbindPopup();
     cell.element?.unbindTooltip();
+
+    // Update popup content
+    const popup = cell.element?.getPopup();
+    if (popup) {
+      popup.setContent(createPopupContent(cell));
+      setTimeout(() => popup.update(), 0); // Force refresh for mobile
+    }
+    updateCellAppearance(cell);
 
     if (inRange) {
       if (!cell.popup) cell.popup = createPopupContent(cell);
