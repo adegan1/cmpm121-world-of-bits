@@ -396,18 +396,38 @@ function refreshCellInteractivity() {
         : SETTINGS.OUT_OF_RANGE_OPACITY,
     });
 
-    // Check for existing popup
-    if (cell.popup) {
-      refreshPopup(cell);
-    }
-    updateCellAppearance(cell);
-
-    // Tooltip only reflects range — popup remains bound
     if (inRange) {
+      // Remove tooltip if present
       cell.element?.unbindTooltip();
+
+      // Ensure popup content exists
+      if (!cell.popup) {
+        cell.popup = createPopupContent(cell);
+      }
+
+      // Ensure popup is bound (even if it existed before)
+      if (!cell.element?.getPopup()) {
+        cell.element?.bindPopup(cell.popup, {
+          autoClose: true,
+          closeOnClick: true,
+          closeOnEscapeKey: true,
+        });
+      }
     } else {
+      const popup = cell.element?.getPopup();
+      if (popup && popup.isOpen()) {
+        cell.element?.closePopup();
+      }
+
+      // Remove popup binding but not popup content reference
+      if (cell.element?.getPopup()) {
+        cell.element?.unbindPopup();
+      }
+
       cell.element?.bindTooltip("Too far away!", { permanent: false });
     }
+
+    updateCellAppearance(cell);
   }
 }
 
@@ -525,6 +545,7 @@ class GPSMovement implements MovementController {
         const p = latLngToGrid(
           leaflet.latLng(pos.coords.latitude, pos.coords.longitude),
         );
+        refreshCellInteractivity();
         this.moveCallback(p.i, p.j);
       },
       (err) => console.warn("GPS error:", err),
@@ -768,7 +789,10 @@ function loadGameState() {
 // ================================
 //            RESET BUTTON
 // ================================
-resetBtn.addEventListener("click", () => {
+resetBtn.addEventListener("click", resetGame); // For PC
+resetBtn.addEventListener("touchend", resetGame, { passive: true }); // For Mobile
+
+function resetGame() {
   if (gamePaused) return;
 
   if (
@@ -776,9 +800,10 @@ resetBtn.addEventListener("click", () => {
       "Are you sure you want to reset the game? This will erase all progress.",
     )
   ) return;
+
   localStorage.removeItem("myGameSave");
   location.reload();
-});
+}
 
 // ================================
 //          SETTINGS BUTTON
